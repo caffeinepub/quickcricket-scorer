@@ -1,0 +1,76 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-identify-and-fix-the-specific-mobile-runtime-ui-failure-s-preventing-the-app-from-being-usable-on-mobile-browsers-at-minimum-match-setup-matches-dashboard-and-live-scoring-and-ensure-the-primary-user-flows-work-end-to-end-on-small-screens-create-match-start-innings-record-runs-extras-wicket-undo-and-navigate-back",
+      "featureTitle": "Identify and fix the specific mobile runtime/UI failure(s) preventing the app from being usable on mobile browsers (at minimum: Match Setup, Matches Dashboard, and Live Scoring), and ensure the primary user flows work end-to-end on small screens (create match, start innings, record runs/extras/wicket, undo, and navigate back).",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/AppErrorBoundary.tsx",
+        "frontend/src/pages/LiveScoringPage.tsx",
+        "frontend/src/pages/MatchSetupPage.tsx",
+        "frontend/src/pages/MatchesDashboardPage.tsx",
+        "frontend/src/utils/parseMatchId.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-30"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-make-the-global-layout-and-header-mobile-safe-prevent-horizontal-overflow-clipping-ensure-header-content-brand-status-home-login-logout-remains-usable-on-narrow-widths-and-ensure-the-banner-image-does-not-force-layout-overflow-or-excessive-vertical-space-on-small-screens",
+      "featureTitle": "Make the global layout and header mobile-safe: prevent horizontal overflow/clipping, ensure header content (brand, status, home, login/logout) remains usable on narrow widths, and ensure the banner image does not force layout overflow or excessive vertical space on small screens.",
+      "files": [
+        "frontend/src/components/AppHeader.tsx",
+        "frontend/src/components/AppLayout.tsx",
+        "frontend/src/index.css",
+        "frontend/src/pages/LiveScoringPage.tsx",
+        "frontend/src/pages/MatchSetupPage.tsx",
+        "frontend/src/pages/MatchesDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-31"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-improve-mobile-usability-of-form-and-selection-controls-in-match-setup-and-live-scoring-inputs-selects-dialogs-ensure-dialogs-and-dropdown-content-are-scrollable-on-small-screens-inputs-remain-visible-when-the-on-screen-keyboard-is-open-and-primary-actions-remain-easy-to-tap",
+      "featureTitle": "Improve mobile usability of form and selection controls in Match Setup and Live Scoring (inputs, selects, dialogs): ensure dialogs and dropdown content are scrollable on small screens, inputs remain visible when the on-screen keyboard is open, and primary actions remain easy to tap.",
+      "files": [
+        "frontend/src/components/mobile/MobileSafeDialogContent.tsx",
+        "frontend/src/components/mobile/MobileSafeSelectContent.tsx",
+        "frontend/src/hooks/useScrollIntoViewOnFocus.ts",
+        "frontend/src/pages/LiveScoringPage.tsx",
+        "frontend/src/pages/MatchSetupPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-32"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

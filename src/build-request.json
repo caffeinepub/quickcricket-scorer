@@ -1,0 +1,76 @@
+{
+  "kind": "build_request",
+  "title": "Fix mobile usability and layout issues across core scoring flows",
+  "projectName": "QuickCricket Scorer",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-30",
+      "text": "Identify and fix the specific mobile runtime/UI failure(s) preventing the app from being usable on mobile browsers (at minimum: Match Setup, Matches Dashboard, and Live Scoring), and ensure the primary user flows work end-to-end on small screens (create match, start innings, record runs/extras/wicket, undo, and navigate back).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "it is not working in mobile"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On iOS Safari and Android Chrome sized viewports (~360–430px wide), the app loads without a blank screen and without uncaught runtime errors in the console.",
+        "A user can complete the core flow on mobile: create a match in Match Setup, start the first innings, land on Live Scoring, record at least 6 legal balls plus an extra (wide/no-ball), use Undo, and navigate back to the dashboard.",
+        "If any step fails (e.g., match creation/start innings/navigation), the user sees an English toast error that describes what failed, and the console contains a useful error log (not a silent failure)."
+      ]
+    },
+    {
+      "id": "REQ-31",
+      "text": "Make the global layout and header mobile-safe: prevent horizontal overflow/clipping, ensure header content (brand, status, home, login/logout) remains usable on narrow widths, and ensure the banner image does not force layout overflow or excessive vertical space on small screens.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "it is not working in mobile"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No horizontal scrolling is required on mobile on any core page (Dashboard, Match Setup, Live Scoring, Summaries).",
+        "Header actions remain accessible on mobile (connectivity badge, home button, login/logout) without overlapping or being pushed off-screen.",
+        "The header banner image remains contained within the viewport width and uses a mobile-appropriate height (does not dominate the screen)."
+      ]
+    },
+    {
+      "id": "REQ-32",
+      "text": "Improve mobile usability of form and selection controls in Match Setup and Live Scoring (inputs, selects, dialogs): ensure dialogs and dropdown content are scrollable on small screens, inputs remain visible when the on-screen keyboard is open, and primary actions remain easy to tap.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "it is not working in mobile"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On mobile, the Match Setup selects (opening batters/bowler) and Live Scoring dialogs (wicket, extras, new bowler) can be opened, interacted with, and closed without content being cut off.",
+        "Dialog content fits within the viewport height with internal scrolling when needed (no controls inaccessible off-screen).",
+        "Touch targets for the primary scoring actions (0–6, wicket, extras, undo) are comfortably tappable on mobile and do not require precision taps."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not edit files under frontend/src/components/ui (Shadcn UI components); compose or wrap them instead if mobile behavior needs adjustment.",
+    "Do not edit immutable hook files: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx.",
+    "Keep the backend as a single Motoko actor in backend/main.mo; only add migration if state changes require it."
+  ],
+  "nonGoals": [
+    "Do not add a native mobile app or React Native build.",
+    "Do not add PWA installability/offline caching via service workers unless required to fix the reported mobile failure.",
+    "Do not introduce new third-party auth providers or external databases/services."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

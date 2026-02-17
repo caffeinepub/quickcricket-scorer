@@ -1,0 +1,300 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 17,
+  "summary": "Build a mobile-friendly cricket scoring app with offline support and on-device data storage.",
+  "architectural_notes": [
+    "Adopt an offline-first approach for mobile: persist match/scoring state locally on-device and support resuming without network connectivity."
+  ],
+  "known_issues": [
+    "Match setup overs input does not allow typing a numeric value (e.g., 12 or 15 overs).",
+    "Live scoring is missing extras handling details (wide, no-ball, leg byes).",
+    "Wide/no-ball deliveries should add runs but not count as a legal ball; current behavior does not bowl the extra ball.",
+    "Offline mode issue: unable to create a match while offline; refreshing the page clears/loses locally stored match data instead of persisting it on-device.",
+    "Offline match creation is still failing (cannot create a match while offline).",
+    "Offline mode behavior is still not working correctly after the latest build attempt (user reports no improvement).",
+    "Mobile experience not working: user reports the app is not functioning on mobile (details unspecified)."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-create-a-react-ui-to-set-up-a-match-instantly-select-number-of-overs-or-unlimited-add-two-teams-add-players-for-each-team-choose-opening-batters-and-opening-bowler-and-start-the-first-innings",
+      "title": "Create a React UI to set up a match instantly: select number of overs (or 'Unlimited'), add two teams, add players for each team, choose opening batters and opening bowler, and start the first innings.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-live-scoring-screen-for-ball-by-ball-scoring-with-quick-actions-for-common-outcomes-0-6-runs-wicket-wide-no-ball-byes-leg-byes-plus-strike-rotation-and-end-of-over-handling-select-next-bowler",
+      "title": "Build a live scoring screen for ball-by-ball scoring with quick actions for common outcomes (0–6 runs, wicket, wide, no-ball, byes/leg-byes), plus strike rotation and end-of-over handling (select next bowler).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-undo-redo-style-safety-with-at-least-undo-last-ball-and-optional-redo-so-scorers-can-correct-mistakes-instantly",
+      "title": "Add Undo/Redo-style safety with at least 'Undo last ball' (and optional 'Redo') so scorers can correct mistakes instantly.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-support-innings-progression-and-match-completion-end-innings-all-out-or-overs-completed-start-second-innings-with-target-chase-context-and-show-a-match-summary-at-the-end",
+      "title": "Support innings progression and match completion: end innings (all out or overs completed), start second innings with target/chase context, and show a match summary at the end.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-matches-dashboard-to-list-saved-matches-resume-an-in-progress-match-view-completed-match-summaries-and-create-a-new-match",
+      "title": "Create a Matches dashboard to list saved matches, resume an in-progress match, view completed match summaries, and create a new match.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-coherent-distinctive-visual-theme-for-a-cricket-scoring-app-and-enforce-it-consistently-across-screens-typography-spacing-components-and-color-system-avoid-blue-purple-as-the-primary-palette",
+      "title": "Apply a coherent, distinctive visual theme for a cricket scoring app and enforce it consistently across screens (typography, spacing, components, and color system). Avoid blue/purple as the primary palette.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-generated-static-image-assets-to-the-frontend-and-use-them-in-the-ui-e-g-in-the-header-login-dashboard-by-serving-them-from-frontend-public-assets-generated",
+      "title": "Add generated static image assets to the frontend and use them in the UI (e.g., in the header/login/dashboard) by serving them from frontend/public/assets/generated.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-match-setup-screen-to-allow-entering-a-custom-numeric-overs-per-innings-value-e-g-12-or-15-in-addition-to-the-existing-preset-buttons-and-the-unlimited-option-and-ensure-the-selected-value-is-validated-and-stored-with-the-match-so-it-can-be-used-later-during-scoring",
+      "title": "Update the Match Setup screen to allow entering a custom numeric overs-per-innings value (e.g., 12 or 15) in addition to the existing preset buttons and the 'Unlimited' option, and ensure the selected value is validated and stored with the match so it can be used later during scoring.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-live-scoring-screen-to-provide-ui-actions-for-recording-extras-with-details-wide-no-ball-byes-leg-byes-and-to-compute-display-overs-based-on-legal-deliveries-only-ensuring-wide-no-ball-results-in-an-extra-delivery-being-available-in-the-over",
+      "title": "Update the Live Scoring screen to provide UI actions for recording extras with details (wide, no-ball, byes, leg-byes) and to compute/display overs based on legal deliveries only, ensuring wide/no-ball results in an extra delivery being available in the over.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enable-the-app-to-work-offline-on-mobile-by-storing-all-match-setup-scoring-data-on-device-and-allowing-users-to-create-resume-and-complete-matches-without-an-internet-connection-or-backend-availability",
+      "title": "Enable the app to work offline on mobile by storing all match/setup/scoring data on-device and allowing users to create, resume, and complete matches without an internet connection or backend availability.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-offline-online-status-indicator-in-the-ui-and-make-offline-behavior-explicit-with-user-facing-messages-in-english-e-g-showing-that-the-app-is-in-offline-mode-and-data-is-saved-on-device",
+      "title": "Add an offline/online status indicator in the UI and make offline behavior explicit with user-facing messages in English (e.g., showing that the app is in Offline Mode and data is saved on-device).",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-an-on-device-persistence-layer-for-matches-and-scoring-state-including-ball-history-and-integrate-it-with-the-existing-react-query-data-flow-so-screens-continue-to-render-correctly-in-offline-mode",
+      "title": "Implement an on-device persistence layer for matches and scoring state (including ball history) and integrate it with the existing React Query data flow so screens continue to render correctly in offline mode.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-basic-mobile-first-ux-safeguards-for-offline-scoring-touch-friendly-controls-and-preventing-accidental-navigation-loss-so-the-scoring-flow-remains-usable-on-phones-while-disconnected",
+      "title": "Add basic mobile-first UX safeguards for offline scoring (touch-friendly controls and preventing accidental navigation loss) so the scoring flow remains usable on phones while disconnected.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-in-app-explanation-of-what-a-backend-canister-is-using-clear-english-user-facing-copy-so-users-understand-what-backend-unavailable-means-and-what-would-sync-to-if-sync-is-enabled-later",
+      "title": "Add an in-app explanation of what a “backend canister” is, using clear English user-facing copy, so users understand what “Backend unavailable” means and what would sync to if sync is enabled later.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-delete-match-option-from-the-matches-dashboard-to-remove-old-saved-matches-with-a-confirmation-step-supporting-both-local-only-matches-and-backend-stored-matches",
+      "title": "Add a “Delete match” option from the Matches dashboard to remove old/saved matches, with a confirmation step, supporting both local-only matches and backend-stored matches.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-expose-a-frontend-mutation-hook-for-deleting-matches-that-mirrors-existing-offline-first-patterns-local-first-when-offline-backend-local-when-online-and-reuses-existing-local-match-store-deletion-helpers",
+      "title": "Expose a frontend mutation hook for deleting matches that mirrors existing offline-first patterns (local-first when offline; backend+local when online) and reuses existing local match store deletion helpers.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-allow-users-to-create-and-view-matches-while-offline-even-if-they-are-not-authenticated-with-internet-identity-by-updating-the-matches-dashboard-and-navigation-gating-so-offline-local-only-match-workflows-do-not-require-login",
+      "title": "Allow users to create and view matches while offline even if they are not authenticated with Internet Identity, by updating the Matches Dashboard and navigation gating so offline local-only match workflows do not require login.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-locally-created-matches-persist-across-full-page-refresh-and-are-reliably-reloaded-into-the-ui-from-on-device-storage-including-after-creating-a-match-in-offline-mode-and-immediately-refreshing-the-page",
+      "title": "Ensure locally created matches persist across full page refresh and are reliably reloaded into the UI from on-device storage, including after creating a match in offline mode and immediately refreshing the page.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-explicit-english-user-facing-messaging-in-the-match-setup-and-matches-dashboard-screens-that-clarifies-offline-behavior-for-match-creation-and-persistence-saved-on-this-device-available-after-refresh-aligned-with-the-existing-offline-online-indicator-patterns",
+      "title": "Add explicit English user-facing messaging in the Match Setup and Matches Dashboard screens that clarifies offline behavior for match creation and persistence (saved on this device, available after refresh), aligned with the existing offline/online indicator patterns.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-connectivity-offline-detection-so-the-app-enters-offline-mode-local-only-workflows-enabled-when-the-backend-canister-is-unavailable-even-if-the-device-has-network-connectivity-and-the-user-is-not-authenticated",
+      "title": "Fix connectivity/offline detection so the app enters Offline Mode (local-only workflows enabled) when the backend canister is unavailable, even if the device has network connectivity and the user is not authenticated.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-offline-match-creation-reliable-end-to-end-creating-a-match-in-match-setup-must-succeed-in-offline-mode-start-the-first-innings-locally-and-navigate-to-the-live-scoring-page-for-that-match-without-errors",
+      "title": "Make offline match creation reliable end-to-end: creating a match in Match Setup must succeed in Offline Mode, start the first innings locally, and navigate to the Live Scoring page for that match without errors.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-offline-created-matches-persist-and-are-discoverable-after-creating-a-match-while-offline-refreshing-the-page-must-keep-the-match-in-the-matches-dashboard-list-and-allow-resuming-it",
+      "title": "Ensure offline-created matches persist and are discoverable: after creating a match while offline, refreshing the page must keep the match in the Matches Dashboard list and allow resuming it.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-offline-local-only-match-creation-fully-reliable-end-to-end-when-the-app-is-offline-network-down-or-backend-unavailable-or-the-user-is-not-authenticated-creating-a-match-in-match-setup-must-1-save-the-match-to-on-device-storage-2-start-the-first-innings-locally-and-3-navigate-to-the-live-scoring-page-for-that-match-without-throwing-errors-or-showing-match-not-ready",
+      "title": "Make offline/local-only match creation fully reliable end-to-end: when the app is offline (network down or backend unavailable) or the user is not authenticated, creating a match in Match Setup must (1) save the match to on-device storage, (2) start the first innings locally, and (3) navigate to the Live Scoring page for that match without throwing errors or showing “Match Not Ready”.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-local-persistence-and-reload-behavior-so-locally-created-matches-and-their-innings-ball-history-persist-across-a-full-page-refresh-and-are-reliably-reloaded-into-the-matches-dashboard-and-match-scoring-pages-from-on-device-storage",
+      "title": "Fix local persistence and reload behavior so locally created matches and their innings/ball history persist across a full page refresh and are reliably reloaded into the Matches Dashboard and Match/Scoring pages from on-device storage.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-eliminate-local-match-data-corruption-caused-by-non-serializable-or-invalidly-typed-fields-in-offline-local-only-stored-matches-e-g-any-principal-owner-fields-so-that-saving-then-loading-a-local-only-match-always-succeeds-using-the-existing-local-storage-serialization-deserialization-pipeline",
+      "title": "Eliminate local match data corruption caused by non-serializable or invalidly typed fields in offline/local-only stored matches (e.g., any Principal/owner fields), so that saving then loading a local-only match always succeeds using the existing local storage serialization/deserialization pipeline.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-lightweight-user-facing-and-console-debuggable-diagnostics-for-offline-match-creation-failures-to-reduce-guesswork-when-offline-creation-or-local-persistence-fails-show-an-english-toast-error-message-and-log-a-structured-console-error-that-includes-which-step-failed-create-match-save-vs-start-innings-update-vs-navigation-load",
+      "title": "Add lightweight, user-facing and console-debuggable diagnostics for offline match creation failures to reduce guesswork: when offline creation or local persistence fails, show an English toast/error message and log a structured console error that includes which step failed (create match save vs start innings update vs navigation/load).",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-identify-and-fix-the-specific-mobile-runtime-ui-failure-s-preventing-the-app-from-being-usable-on-mobile-browsers-at-minimum-match-setup-matches-dashboard-and-live-scoring-and-ensure-the-primary-user-flows-work-end-to-end-on-small-screens-create-match-start-innings-record-runs-extras-wicket-undo-and-navigate-back",
+      "title": "Identify and fix the specific mobile runtime/UI failure(s) preventing the app from being usable on mobile browsers (at minimum: Match Setup, Matches Dashboard, and Live Scoring), and ensure the primary user flows work end-to-end on small screens (create match, start innings, record runs/extras/wicket, undo, and navigate back).",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-the-global-layout-and-header-mobile-safe-prevent-horizontal-overflow-clipping-ensure-header-content-brand-status-home-login-logout-remains-usable-on-narrow-widths-and-ensure-the-banner-image-does-not-force-layout-overflow-or-excessive-vertical-space-on-small-screens",
+      "title": "Make the global layout and header mobile-safe: prevent horizontal overflow/clipping, ensure header content (brand, status, home, login/logout) remains usable on narrow widths, and ensure the banner image does not force layout overflow or excessive vertical space on small screens.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-improve-mobile-usability-of-form-and-selection-controls-in-match-setup-and-live-scoring-inputs-selects-dialogs-ensure-dialogs-and-dropdown-content-are-scrollable-on-small-screens-inputs-remain-visible-when-the-on-screen-keyboard-is-open-and-primary-actions-remain-easy-to-tap",
+      "title": "Improve mobile usability of form and selection controls in Match Setup and Live Scoring (inputs, selects, dialogs): ensure dialogs and dropdown content are scrollable on small screens, inputs remain visible when the on-screen keyboard is open, and primary actions remain easy to tap.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create a cricket scoring app (instant build).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Implement a complete cricket match scoring data model and APIs in the Motoko backend, including match creation, team/player rosters, innings, ball-by-ball events, and computed scoreboard fields (runs, wickets, overs/balls, run rate).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Persist matches in stable storage so match state survives canister upgrades, and scope stored matches by authenticated user principal when available.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Extend the backend scoring data model and recordBall logic to support detailed extras (wide, no-ball, byes, leg-byes) and distinguish legal vs illegal deliveries so wides and no-balls do not count as legal balls (i.e., they add runs but require an additional delivery to be bowled).",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add offline-first support for mobile: store matches and scoring data locally on the device so the app works without internet and can resume later.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Add match management option to delete old/saved matches from on-device storage (e.g., from Matches dashboard).",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "QuickCricket Scorer",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

@@ -1,0 +1,36 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-17T17:13:32.221Z",
+  "summary": "Diff focuses on mobile stability/usability: adds an app-level error boundary, prevents horizontal overflow globally, makes header responsive with a contained banner image, introduces mobile-safe wrappers for Dialog/Select content, and adds matchId validation plus more defensive navigation/toast error handling on core pages. Some REQ-32 aspects (keyboard/scroll-into-view behavior) are added as a hook but not evidenced as wired into Match Setup/Live Scoring inputs in the provided diff summary.",
+  "missing_requirements": [
+    {
+      "id": "REQ-32",
+      "requirement": "Ensure inputs remain visible when the on-screen keyboard is open (e.g., scroll focused inputs into view) in Match Setup and Live Scoring.",
+      "reason": "A `useScrollIntoViewOnFocus` hook was added, but the diff summary does not show it being used in MatchSetupPage or LiveScoringPage (or any inputs) to actually keep focused fields visible when the keyboard opens.",
+      "evidence": [
+        "frontend/src/hooks/useScrollIntoViewOnFocus.ts",
+        "frontend/src/pages/MatchSetupPage.tsx (truncated)",
+        "frontend/src/pages/LiveScoringPage.tsx (truncated)"
+      ]
+    }
+  ],
+  "hallucinated_features": [],
+  "confidence": 0.58,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/components/AppErrorBoundary.tsx",
+    "frontend/src/components/AppHeader.tsx",
+    "frontend/src/components/AppLayout.tsx",
+    "frontend/src/components/mobile/MobileSafeDialogContent.tsx",
+    "frontend/src/components/mobile/MobileSafeSelectContent.tsx",
+    "frontend/src/hooks/useScrollIntoViewOnFocus.ts",
+    "frontend/src/index.css",
+    "frontend/src/pages/LiveScoringPage.tsx",
+    "frontend/src/pages/MatchSetupPage.tsx",
+    "frontend/src/pages/MatchesDashboardPage.tsx",
+    "frontend/src/utils/parseMatchId.ts",
+    "project_state.json"
+  ]
+}

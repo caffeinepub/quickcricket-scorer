@@ -1,0 +1,130 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "QuickCricket Scorer — Mobile usability + layout fixes across scoring flows",
+  "requirements": [
+    {
+      "id": "REQ-30",
+      "summary": "Eliminate mobile runtime/UI failures and ensure core match setup → live scoring flow works end-to-end with actionable errors/logging.",
+      "acceptanceCriteria": [
+        "On iOS Safari and Android Chrome sized viewports (~360–430px wide), the app loads without a blank screen and without uncaught runtime errors in the console.",
+        "A user can complete the core flow on mobile: create a match in Match Setup, start the first innings, land on Live Scoring, record at least 6 legal balls plus an extra (wide/no-ball), use Undo, and navigate back to the dashboard.",
+        "If any step fails (e.g., match creation/start innings/navigation), the user sees an English toast error that describes what failed, and the console contains a useful error log (not a silent failure)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/AppErrorBoundary.tsx",
+          "operation": "create",
+          "description": "Add a lightweight React error boundary that (1) prevents blank-screen failures by rendering a safe fallback UI, (2) logs a useful error+component stack to the console, and (3) prompts the user to return to the dashboard; keep messaging mobile-friendly."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wrap the routed app content with the new AppErrorBoundary so unexpected runtime errors on mobile render a fallback instead of a blank screen; ensure the boundary is wired in for all core routes (Dashboard, Match Setup, Live Scoring, Summaries)."
+        },
+        {
+          "path": "frontend/src/utils/parseMatchId.ts",
+          "operation": "create",
+          "description": "Add a small helper to safely parse the route matchId into a bigint (returning a typed failure result on invalid input) to avoid runtime crashes on mobile when the URL is malformed or contains unexpected characters."
+        },
+        {
+          "path": "frontend/src/pages/LiveScoringPage.tsx",
+          "operation": "modify",
+          "description": "Harden the Live Scoring page against mobile runtime failures: validate/guard matchId parsing before calling BigInt, add explicit toast+console logging for invalid IDs / missing match state, and ensure the page can always navigate back to the dashboard even after an error."
+        },
+        {
+          "path": "frontend/src/pages/MatchSetupPage.tsx",
+          "operation": "modify",
+          "description": "Audit and reinforce the create match + start innings flow for mobile: ensure every failure branch shows an English toast describing the failed step (create match vs start innings vs navigation), and add additional console.error context to make mobile debugging actionable."
+        },
+        {
+          "path": "frontend/src/pages/MatchesDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Make Dashboard navigation resilient on mobile by ensuring any navigation/state failures produce an English toast and a useful console log (no silent failures), especially around loading/refetch and navigating to setup/live scoring."
+        }
+      ]
+    },
+    {
+      "id": "REQ-31",
+      "summary": "Make global layout/header responsive on narrow screens and remove horizontal overflow, including keeping the banner image contained and appropriately sized.",
+      "acceptanceCriteria": [
+        "No horizontal scrolling is required on mobile on any core page (Dashboard, Match Setup, Live Scoring, Summaries).",
+        "Header actions remain accessible on mobile (connectivity badge, home button, login/logout) without overlapping or being pushed off-screen.",
+        "The header banner image remains contained within the viewport width and uses a mobile-appropriate height (does not dominate the screen)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Add global mobile-safety CSS to prevent horizontal overflow (e.g., ensure the document/body/root do not allow unintended overflow-x) and improve small-screen text wrapping for long labels where needed."
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Refactor the header layout to be mobile-safe: make the brand block and actions wrap/stack cleanly on narrow widths (using responsive flex direction, gaps, and min-w-0 where needed) and ensure the banner image is responsive (mobile-appropriate height) while remaining contained within the viewport. Ensure the existing generated assets remain referenced at frontend/public/assets/generated/cricket-badge.dim_512x512.png and frontend/public/assets/generated/scoreboard-banner.dim_1600x400.png."
+        },
+        {
+          "path": "frontend/src/components/AppLayout.tsx",
+          "operation": "modify",
+          "description": "Adjust layout containers/padding for small screens so core pages don’t clip or overflow horizontally; ensure main content uses responsive spacing that works at ~360–430px widths."
+        },
+        {
+          "path": "frontend/src/pages/MatchesDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Fix any mobile horizontal overflow sources in the dashboard header/list (e.g., make the title/action bar wrap/stack and ensure cards/buttons don’t force a wider-than-viewport layout)."
+        },
+        {
+          "path": "frontend/src/pages/LiveScoringPage.tsx",
+          "operation": "modify",
+          "description": "Make the Live Scoring scoreboard and grids responsive to prevent overflow on small screens (e.g., responsive typography for the large score/overs row and grid column counts that don’t exceed the viewport)."
+        },
+        {
+          "path": "frontend/src/pages/MatchSetupPage.tsx",
+          "operation": "modify",
+          "description": "Ensure Match Setup’s multi-card layout and action row are mobile-safe (stack controls where needed and prevent long content from forcing overflow)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-32",
+      "summary": "Improve mobile usability for Match Setup and Live Scoring controls: scrollable dialogs/dropdowns, keyboard-safe inputs, and tappable scoring actions.",
+      "acceptanceCriteria": [
+        "On mobile, the Match Setup selects (opening batters/bowler) and Live Scoring dialogs (wicket, extras, new bowler) can be opened, interacted with, and closed without content being cut off.",
+        "Dialog content fits within the viewport height with internal scrolling when needed (no controls inaccessible off-screen).",
+        "Touch targets for the primary scoring actions (0–6, wicket, extras, undo) are comfortably tappable on mobile and do not require precision taps."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/mobile/MobileSafeDialogContent.tsx",
+          "operation": "create",
+          "description": "Create a small wrapper component that composes the existing shadcn DialogContent (do not edit files under frontend/src/components/ui) and applies mobile-safe sizing (max-height relative to viewport) and internal scrolling; Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/mobile/MobileSafeSelectContent.tsx",
+          "operation": "create",
+          "description": "Create a small wrapper component that composes the existing shadcn SelectContent (do not edit files under frontend/src/components/ui) and applies mobile-safe max-height + overflow scrolling for long lists; Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useScrollIntoViewOnFocus.ts",
+          "operation": "create",
+          "description": "Add a reusable hook to scroll focused inputs/select triggers into view (keyboard-safe) on mobile, minimizing cases where the on-screen keyboard obscures the active field."
+        },
+        {
+          "path": "frontend/src/pages/MatchSetupPage.tsx",
+          "operation": "modify",
+          "description": "Use MobileSafeSelectContent for opening batter/bowler selects and apply keyboard-safe behavior (via useScrollIntoViewOnFocus on relevant Inputs/Select triggers) so dropdowns remain usable and fields stay visible when the keyboard is open; Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/LiveScoringPage.tsx",
+          "operation": "modify",
+          "description": "Make Live Scoring dialogs mobile-safe by switching to MobileSafeDialogContent and MobileSafeSelectContent (for the bowler selector), ensure dialog bodies scroll within viewport height, and adjust scoring button layout for touch (larger targets, responsive grid columns, and reduced chance of mis-taps); Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/LiveScoringPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the primary scoring actions (0–6, wicket, extras, undo) remain comfortably tappable on small screens by applying responsive button sizing/spacing and avoiding cramped multi-column layouts."
+        }
+      ]
+    }
+  ]
+}
