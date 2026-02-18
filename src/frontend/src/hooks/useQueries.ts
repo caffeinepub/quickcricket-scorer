@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { useConnectivity } from './useConnectivity';
-import type { UserProfile, Match, Team, Ball, Innings } from '../backend';
+import { isInningsCompleteByOvers } from '../utils/inningsCompletion';
+import type { UserProfile, Match, Team, Ball, Innings, TossInfo } from '../backend';
 import {
   saveLocalMatch,
   loadLocalMatch,
@@ -176,7 +177,15 @@ export function useCreateMatch() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ teams, oversPerInnings }: { teams: Team[]; oversPerInnings: bigint | null }) => {
+    mutationFn: async ({
+      teams,
+      oversPerInnings,
+      toss,
+    }: {
+      teams: Team[];
+      oversPerInnings: bigint | null;
+      toss?: TossInfo | null;
+    }) => {
       // If offline or unauthenticated, create match locally
       if (isOffline || !isAuthenticated || !actor) {
         const matchId = generateLocalMatchId();
@@ -186,6 +195,7 @@ export function useCreateMatch() {
           teams,
           innings: [],
           oversPerInnings: oversPerInnings ?? undefined,
+          toss: toss ?? undefined,
         };
         try {
           saveLocalMatch(localMatch, true);
@@ -198,7 +208,7 @@ export function useCreateMatch() {
 
       // When online and authenticated, create on backend
       try {
-        const matchId = await actor.createMatch(teams, oversPerInnings ?? null);
+        const matchId = await actor.createMatch(teams, oversPerInnings ?? null, toss ?? null);
         // Also save locally for offline access
         const match: Match = {
           id: matchId,
@@ -206,6 +216,7 @@ export function useCreateMatch() {
           teams,
           innings: [],
           oversPerInnings: oversPerInnings ?? undefined,
+          toss: toss ?? undefined,
         };
         try {
           saveLocalMatch(match, false);
@@ -223,6 +234,7 @@ export function useCreateMatch() {
           teams,
           innings: [],
           oversPerInnings: oversPerInnings ?? undefined,
+          toss: toss ?? undefined,
         };
         try {
           saveLocalMatch(localMatch, true);
@@ -240,7 +252,6 @@ export function useCreateMatch() {
 }
 
 export function useStartInnings() {
-  const { actor } = useActor();
   const { isOffline, isAuthenticated } = useConnectivity();
   const queryClient = useQueryClient();
 
@@ -264,68 +275,23 @@ export function useStartInnings() {
         console.error('Failed to load match for innings start:', error);
       }
 
-      const isLocalOnly = localMatch?._localOnly || isOffline || !isAuthenticated || !actor;
+      // Always handle locally since backend doesn't have startInnings
+      const newInnings: Innings = {
+        battingTeam,
+        bowlingTeam,
+        balls: [],
+        totalRuns: BigInt(0),
+        totalWickets: BigInt(0),
+        overs: overs ?? undefined,
+        ballsInCurrentOver: BigInt(0),
+      };
 
-      if (isLocalOnly) {
-        // Create innings locally
-        const newInnings: Innings = {
-          battingTeam,
-          bowlingTeam,
-          balls: [],
-          totalRuns: BigInt(0),
-          totalWickets: BigInt(0),
-          overs: overs ?? undefined,
-          ballsInCurrentOver: BigInt(0),
-        };
-
-        try {
-          const currentInnings = localMatch?.innings || [];
-          updateLocalMatchInnings(matchId, [...currentInnings, newInnings]);
-        } catch (error) {
-          const message = handleOfflineError('save-innings', 'startInnings (offline)', error);
-          throw new Error(message);
-        }
-        return;
-      }
-
-      // When online and authenticated, start on backend
       try {
-        await actor.startInnings(matchId, battingTeam, bowlingTeam, overs ?? null);
-        // Update local cache
-        const newInnings: Innings = {
-          battingTeam,
-          bowlingTeam,
-          balls: [],
-          totalRuns: BigInt(0),
-          totalWickets: BigInt(0),
-          overs: overs ?? undefined,
-          ballsInCurrentOver: BigInt(0),
-        };
-        try {
-          const currentInnings = localMatch?.innings || [];
-          updateLocalMatchInnings(matchId, [...currentInnings, newInnings]);
-        } catch (localError) {
-          console.warn('Failed to update local cache:', localError);
-        }
+        const currentInnings = localMatch?.innings || [];
+        updateLocalMatchInnings(matchId, [...currentInnings, newInnings]);
       } catch (error) {
-        console.error('Backend startInnings failed, falling back to local:', error);
-        // Fallback to local
-        const newInnings: Innings = {
-          battingTeam,
-          bowlingTeam,
-          balls: [],
-          totalRuns: BigInt(0),
-          totalWickets: BigInt(0),
-          overs: overs ?? undefined,
-          ballsInCurrentOver: BigInt(0),
-        };
-        try {
-          const currentInnings = localMatch?.innings || [];
-          updateLocalMatchInnings(matchId, [...currentInnings, newInnings]);
-        } catch (localError) {
-          const message = handleOfflineError('save-innings', 'startInnings (fallback)', localError);
-          throw new Error(message);
-        }
+        const message = handleOfflineError('save-innings', 'startInnings', error);
+        throw new Error(message);
       }
     },
     onSuccess: (_, variables) => {
@@ -336,13 +302,12 @@ export function useStartInnings() {
 }
 
 export function useRecordBall() {
-  const { actor } = useActor();
   const { isOffline, isAuthenticated } = useConnectivity();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ matchId, inningsIndex, ball }: { matchId: bigint; inningsIndex: number; ball: Ball }) => {
-      // Load the match to check if it's local-only
+      // Check if innings is already complete before recording
       let localMatch: LocalMatch | null = null;
       try {
         localMatch = loadLocalMatch(matchId);
@@ -350,36 +315,19 @@ export function useRecordBall() {
         console.error('Failed to load match for ball recording:', error);
       }
 
-      const isLocalOnly = localMatch?._localOnly || isOffline || !isAuthenticated || !actor;
-
-      if (isLocalOnly) {
-        try {
-          addBallToLocalMatch(matchId, inningsIndex, ball);
-        } catch (error) {
-          const message = handleOfflineError('record-ball', 'recordBall (offline)', error);
-          throw new Error(message);
+      if (localMatch && inningsIndex < localMatch.innings.length) {
+        const currentInnings = localMatch.innings[inningsIndex];
+        if (isInningsCompleteByOvers(currentInnings.balls, currentInnings.overs)) {
+          throw new Error('Cannot record ball: innings is already complete (overs limit reached)');
         }
-        return;
       }
 
-      // When online and authenticated, record on backend
+      // Always handle locally since backend doesn't have recordBall
       try {
-        await actor.recordBall(matchId, BigInt(inningsIndex), ball);
-        // Update local cache
-        try {
-          addBallToLocalMatch(matchId, inningsIndex, ball);
-        } catch (localError) {
-          console.warn('Failed to update local cache:', localError);
-        }
+        addBallToLocalMatch(matchId, inningsIndex, ball);
       } catch (error) {
-        console.error('Backend recordBall failed, falling back to local:', error);
-        // Fallback to local
-        try {
-          addBallToLocalMatch(matchId, inningsIndex, ball);
-        } catch (localError) {
-          const message = handleOfflineError('record-ball', 'recordBall (fallback)', localError);
-          throw new Error(message);
-        }
+        const message = handleOfflineError('record-ball', 'recordBall', error);
+        throw new Error(message);
       }
     },
     onSuccess: (_, variables) => {
@@ -409,8 +357,7 @@ export function useDeleteMatch() {
       try {
         deleteLocalMatch(matchId);
       } catch (error) {
-        const message = handleOfflineError('delete-match', 'deleteMatch (local)', error);
-        throw new Error(message);
+        console.error('Failed to delete local match:', error);
       }
 
       // If not local-only and online, also delete from backend
@@ -418,8 +365,8 @@ export function useDeleteMatch() {
         try {
           await actor.deleteMatch(matchId);
         } catch (error) {
-          console.error('Failed to delete from backend:', error);
-          // Don't throw - local deletion succeeded
+          console.error('Failed to delete match from backend:', error);
+          throw new Error('Match deleted from this device, but backend deletion failed');
         }
       }
     },

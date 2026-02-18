@@ -3,6 +3,7 @@
 
 import { serializeMatch, deserializeMatch } from './serialization';
 import { handleOfflineError } from './offlineDiagnostics';
+import { isInningsCompleteByOvers, countLegalDeliveries } from '../utils/inningsCompletion';
 import type { Match, Innings, Ball } from '../backend';
 
 const STORAGE_KEY_PREFIX = 'cricket_match_';
@@ -183,6 +184,11 @@ export function addBallToLocalMatch(matchId: bigint, inningsIndex: number, ball:
 
   const innings = [...match.innings];
   const currentInnings = innings[inningsIndex];
+
+  // Check if innings is already complete due to overs limit
+  if (isInningsCompleteByOvers(currentInnings.balls, currentInnings.overs)) {
+    throw new LocalStorageError('Cannot add ball: innings is already complete (overs limit reached)');
+  }
 
   // Determine if the delivery is legal
   const isLegalDelivery = ball.extras ? ball.extras.legalDelivery : true;

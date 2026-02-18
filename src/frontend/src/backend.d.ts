@@ -12,6 +12,10 @@ export interface Player {
     name: string;
     battingOrderPosition?: bigint;
 }
+export interface TossInfo {
+    decision: TossDecision;
+    winnerTeamId: bigint;
+}
 export interface BallExtras {
     noBall: boolean;
     byes: bigint;
@@ -41,6 +45,7 @@ export interface Match {
     teams: Array<Team>;
     owner: Principal;
     oversPerInnings?: bigint;
+    toss?: TossInfo;
     innings: Array<Innings>;
 }
 export interface UserProfile {
@@ -51,6 +56,10 @@ export interface Team {
     name: string;
     players: Array<Player>;
 }
+export enum TossDecision {
+    bat = "bat",
+    bowl = "bowl"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -58,7 +67,7 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createMatch(teams: Array<Team>, oversPerInnings: bigint | null): Promise<bigint>;
+    createMatch(teams: Array<Team>, oversPerInnings: bigint | null, toss: TossInfo | null): Promise<bigint>;
     deleteMatch(matchId: bigint): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -66,7 +75,6 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMatches(): Promise<Array<Match>>;
-    recordBall(matchId: bigint, inningsIndex: bigint, ball: Ball): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    startInnings(matchId: bigint, battingTeam: Team, bowlingTeam: Team, overs: bigint | null): Promise<void>;
+    updateTossInfo(matchId: bigint, toss: TossInfo): Promise<void>;
 }

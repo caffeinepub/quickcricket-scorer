@@ -1,13 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Restore full usability of QuickCricket Scorer on mobile browsers by fixing mobile runtime/UI failures and making core scoring flows work end-to-end on small screens.
+**Goal:** Add second-innings chase context (target + remaining runs), automatically end scoring when the chase is achieved, and show clear winning details on the Match Summary.
 
 **Planned changes:**
-- Identify and fix the mobile-specific runtime/UI issue(s) causing blank screens or uncaught errors in Match Setup, Matches Dashboard, and Live Scoring.
-- Ensure the core mobile flow works end-to-end: create match, start innings, record runs/extras/wicket, undo, and navigate back to the dashboard.
-- Add user-facing English toast errors for failed actions (e.g., match creation, start innings, navigation) and ensure useful console error logs are emitted (no silent failures).
-- Make the global layout/header mobile-safe: eliminate horizontal overflow, keep header actions accessible on narrow widths, and constrain the header banner image to mobile-appropriate sizing.
-- Improve mobile usability of Match Setup and Live Scoring controls: ensure dialogs/dropdowns are usable and scrollable on small screens, inputs remain visible with the on-screen keyboard, and primary scoring actions are comfortably tappable.
+- On Live Scoring, when the current innings is the 2nd innings in a 2-innings match, compute and display the chase target (first innings runs + 1) and remaining runs needed to win.
+- During 2nd innings scoring, detect when the chasing team reaches/exceeds the target; show an English success toast naming the winning team, block/disable further ball recording, and navigate to the Match Summary screen.
+- On Match Summary, display the target (when two innings exist) and an English result sentence reflecting the outcome (win by runs, win by wickets, or tie), keeping the winner heading consistent.
 
-**User-visible outcome:** On iOS Safari and Android Chrome phone-sized screens, the app loads reliably without a blank screen, core match setup and live scoring actions work end-to-end, layout does not overflow horizontally, and any failures show clear toast messages with corresponding console logs.
+**User-visible outcome:** Scorers can see the target and runs needed during a chase, the app automatically declares the winner and stops scoring when the target is reached, and the Match Summary clearly shows the target and the match result with the win margin (or tie).

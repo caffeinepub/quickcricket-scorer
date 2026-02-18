@@ -1,73 +1,73 @@
 {
   "kind": "build_request",
-  "title": "Fix mobile usability and layout issues across core scoring flows",
-  "projectName": "QuickCricket Scorer",
-  "priority": "high",
+  "title": "Add chase target display and auto-win when target is reached",
+  "projectName": "Cricket Scorer",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-30",
-      "text": "Identify and fix the specific mobile runtime/UI failure(s) preventing the app from being usable on mobile browsers (at minimum: Match Setup, Matches Dashboard, and Live Scoring), and ensure the primary user flows work end-to-end on small screens (create match, start innings, record runs/extras/wicket, undo, and navigate back).",
+      "id": "REQ-46",
+      "text": "Show 2nd-innings chase context on the Live Scoring screen by computing and displaying the target from the 1st innings total (target = first innings runs + 1), along with remaining runs needed.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-3"
         ],
         "quotes": [
-          "it is not working in mobile"
+          "When 2nd batting team crosses the first batting teams score it's victory. Add target and winning details"
         ]
       },
       "acceptanceCriteria": [
-        "On iOS Safari and Android Chrome sized viewports (~360–430px wide), the app loads without a blank screen and without uncaught runtime errors in the console.",
-        "A user can complete the core flow on mobile: create a match in Match Setup, start the first innings, land on Live Scoring, record at least 6 legal balls plus an extra (wide/no-ball), use Undo, and navigate back to the dashboard.",
-        "If any step fails (e.g., match creation/start innings/navigation), the user sees an English toast error that describes what failed, and the console contains a useful error log (not a silent failure)."
+        "When a match has 2 innings and the current innings is the second innings, LiveScoringPage displays a clearly labeled target (e.g., \"Target: 151\") computed as (first innings total runs + 1).",
+        "When a match is in the second innings, LiveScoringPage displays a clearly labeled remaining requirement (e.g., \"Need 37 more runs to win\").",
+        "All new user-facing labels/messages are in English."
       ]
     },
     {
-      "id": "REQ-31",
-      "text": "Make the global layout and header mobile-safe: prevent horizontal overflow/clipping, ensure header content (brand, status, home, login/logout) remains usable on narrow widths, and ensure the banner image does not force layout overflow or excessive vertical space on small screens.",
+      "id": "REQ-47",
+      "text": "Automatically detect a successful chase in the 2nd innings and immediately mark the match as won in the UI flow by preventing further ball recording and taking the scorer to the Match Summary screen when the 2nd innings total reaches or exceeds the target.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-3"
         ],
         "quotes": [
-          "it is not working in mobile"
+          "When 2nd batting team crosses the first batting teams score it's victory. Add target and winning details"
         ]
       },
       "acceptanceCriteria": [
-        "No horizontal scrolling is required on mobile on any core page (Dashboard, Match Setup, Live Scoring, Summaries).",
-        "Header actions remain accessible on mobile (connectivity badge, home button, login/logout) without overlapping or being pushed off-screen.",
-        "The header banner image remains contained within the viewport width and uses a mobile-appropriate height (does not dominate the screen)."
+        "During second innings scoring, as soon as the second innings total runs becomes >= target, the app shows an English success toast indicating the match is won and by which team.",
+        "After the chase is achieved, the Live Scoring controls no longer allow recording additional balls for that match (either disabled or blocked with an English message).",
+        "After the chase is achieved, the app navigates to the Match Summary screen for the match (without getting stuck on the Live Scoring page)."
       ]
     },
     {
-      "id": "REQ-32",
-      "text": "Improve mobile usability of form and selection controls in Match Setup and Live Scoring (inputs, selects, dialogs): ensure dialogs and dropdown content are scrollable on small screens, inputs remain visible when the on-screen keyboard is open, and primary actions remain easy to tap.",
+      "id": "REQ-48",
+      "text": "Add winning details to the Match Summary screen, including the target and a human-readable result line that includes win margin (by runs, wickets, or tie).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-3"
         ],
         "quotes": [
-          "it is not working in mobile"
+          "When 2nd batting team crosses the first batting teams score it's victory. Add target and winning details"
         ]
       },
       "acceptanceCriteria": [
-        "On mobile, the Match Setup selects (opening batters/bowler) and Live Scoring dialogs (wicket, extras, new bowler) can be opened, interacted with, and closed without content being cut off.",
-        "Dialog content fits within the viewport height with internal scrolling when needed (no controls inaccessible off-screen).",
-        "Touch targets for the primary scoring actions (0–6, wicket, extras, undo) are comfortably tappable on mobile and do not require precision taps."
+        "MatchSummaryPage displays the target (first innings runs + 1) when two innings exist.",
+        "MatchSummaryPage displays an English result sentence matching the outcome: (a) if Team 2 chases successfully: \"<Team2> won by <wickets remaining> wickets\"; (b) if Team 1 defends successfully: \"<Team1> won by <run margin> runs\"; (c) if equal scores: \"Match tied\".",
+        "The winner heading on MatchSummaryPage remains correct for win/lose/tie outcomes and is consistent with the new result sentence."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (Shadcn UI components); compose or wrap them instead if mobile behavior needs adjustment.",
-    "Do not edit immutable hook files: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx.",
-    "Keep the backend as a single Motoko actor in backend/main.mo; only add migration if state changes require it."
+    "Do not edit any files under frontend/src/components/ui (Shadcn UI components must be composed, not modified).",
+    "Do not edit frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts (immutable paths).",
+    "Keep the backend single-actor architecture (all Motoko logic in backend/main.mo); only add migration code if state schema upgrades are required."
   ],
   "nonGoals": [
-    "Do not add a native mobile app or React Native build.",
-    "Do not add PWA installability/offline caching via service workers unless required to fix the reported mobile failure.",
-    "Do not introduce new third-party auth providers or external databases/services."
+    "Do not implement Duckworth-Lewis-Stern (DLS) or rain rules.",
+    "Do not add tournament/league points tables.",
+    "Do not add third-innings or multi-innings match formats beyond the existing two-innings flow."
   ],
   "imageRequirements": {
     "required": [],

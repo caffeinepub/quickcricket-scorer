@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 17,
+  "projectStateVersion": 29,
   "summary": "Build a mobile-friendly cricket scoring app with offline support and on-device data storage.",
   "architectural_notes": [
     "Adopt an offline-first approach for mobile: persist match/scoring state locally on-device and support resuming without network connectivity."
@@ -12,9 +12,12 @@
     "Offline mode issue: unable to create a match while offline; refreshing the page clears/loses locally stored match data instead of persisting it on-device.",
     "Offline match creation is still failing (cannot create a match while offline).",
     "Offline mode behavior is still not working correctly after the latest build attempt (user reports no improvement).",
-    "Mobile experience not working: user reports the app is not functioning on mobile (details unspecified)."
+    "Mobile experience not working: user reports the app is not functioning on mobile (details unspecified).",
+    "Toss information is missing/not displayed in the UI (user cannot see toss details).",
+    "Batting selection is auto-populated; user cannot manually choose striker/non-striker at innings start or select the next batter after a wicket.",
+    "Innings is not being completed/ended automatically after the selected number of overs are bowled."
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
       "id": "feature-create-a-react-ui-to-set-up-a-match-instantly-select-number-of-overs-or-unlimited-add-two-teams-add-players-for-each-team-choose-opening-batters-and-opening-bowler-and-start-the-first-innings",
@@ -247,6 +250,134 @@
         "REQ-32"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-extend-the-match-data-model-to-store-toss-information-including-at-minimum-the-toss-winner-which-team-and-the-toss-decision-bat-or-bowl-and-ensure-this-data-is-returned-wherever-match-data-is-fetched",
+      "title": "Extend the match data model to store toss information, including (at minimum) the toss winner (which team) and the toss decision (bat or bowl), and ensure this data is returned wherever match data is fetched.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-match-creation-so-toss-information-can-be-saved-at-match-setup-time-including-offline-local-only-match-creation-and-validate-inputs-with-clear-english-error-messages",
+      "title": "Update match creation so toss information can be saved at match setup time, including offline/local-only match creation, and validate inputs with clear English error messages.",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-toss-information-in-the-match-ui-so-users-can-see-it-after-starting-the-match-including-live-scoring-and-summary-screens-with-an-explicit-fallback-when-not-recorded",
+      "title": "Display toss information in the match UI so users can see it after starting the match, including Live Scoring and summary screens, with an explicit fallback when not recorded.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-offline-serialization-deserialization-to-persist-toss-information-for-locally-stored-matches-without-breaking-existing-saved-matches",
+      "title": "Update offline serialization/deserialization to persist toss information for locally stored matches without breaking existing saved matches.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-dedicated-match-statistics-view-that-shows-both-batting-and-bowling-statistics-computed-from-the-saved-ball-by-ball-data-and-accessible-for-any-match-offline-local-only-or-online-cached",
+      "title": "Add a dedicated match statistics view that shows both batting and bowling statistics, computed from the saved ball-by-ball data, and accessible for any match (offline/local-only or online-cached).",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-navigation-entry-points-to-the-new-statistics-view-from-the-live-scoring-and-summary-flows",
+      "title": "Add navigation entry points to the new statistics view from the live scoring and summary flows.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-all-user-facing-text-added-for-the-statistics-feature-is-in-english-and-matches-existing-tone-style-short-clear-labels-and-errors",
+      "title": "Ensure all user-facing text added for the statistics feature is in English and matches existing tone/style (short, clear labels and errors).",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-live-scoring-flow-so-the-app-does-not-auto-populate-the-striker-and-non-striker-from-the-first-two-players-in-the-batting-team-and-instead-requires-the-scorer-to-manually-select-the-striker-and-non-striker-before-any-ball-can-be-recorded-including-after-a-page-refresh-where-the-ui-state-is-empty",
+      "title": "Update the Live Scoring flow so the app does not auto-populate the striker and non-striker from the first two players in the batting team, and instead requires the scorer to manually select the striker and non-striker before any ball can be recorded (including after a page refresh where the UI state is empty).",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-wicket-flow-so-that-after-a-wicket-is-recorded-for-the-current-striker-the-app-does-not-automatically-assign-the-next-batter-and-instead-forces-the-scorer-to-select-the-next-batter-from-the-remaining-eligible-batters-before-continuing-scoring",
+      "title": "Update the wicket flow so that after a wicket is recorded for the current striker, the app does not automatically assign the next batter, and instead forces the scorer to select the next batter from the remaining eligible batters before continuing scoring.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-refactor-livescoringpage-state-initialization-so-it-does-not-depend-on-defaulting-striker-non-striker-currentbowler-to-the-first-players-instead-it-should-a-always-load-ball-history-from-the-current-innings-and-b-drive-required-selection-prompts-based-on-whether-striker-non-striker-are-currently-selected-without-showing-a-misleading-initializing-match-spinner-indefinitely",
+      "title": "Refactor LiveScoringPage state initialization so it does not depend on defaulting striker/non-striker/currentBowler to the first players; instead, it should (a) always load ball history from the current innings, and (b) drive required selection prompts based on whether striker/non-striker are currently selected, without showing a misleading “Initializing match...” spinner indefinitely.",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-a-wicket-is-recorded-and-there-are-no-eligible-next-batters-remaining-i-e-the-batting-side-is-all-out-automatically-end-the-current-innings-and-take-the-scorer-to-the-innings-summary-screen-instead-of-leaving-scoring-blocked-waiting-for-next-batter-selection",
+      "title": "When a wicket is recorded and there are no eligible next batters remaining (i.e., the batting side is all out), automatically end the current innings and take the scorer to the Innings Summary screen instead of leaving scoring blocked waiting for next-batter selection.",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-automatically-complete-an-innings-when-the-selected-overs-per-innings-limit-is-reached-based-on-legal-deliveries-only-and-prevent-any-further-ball-recording-once-the-innings-is-complete",
+      "title": "Automatically complete an innings when the selected overs-per-innings limit is reached (based on legal deliveries only), and prevent any further ball recording once the innings is complete.",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-bowler-selection-so-the-scorer-can-select-a-bowler-from-the-added-bowling-team-player-list-including-at-over-change-without-requiring-manual-name-entry",
+      "title": "Fix bowler selection so the scorer can select a bowler from the added bowling team player list (including at over change), without requiring manual name entry.",
+      "reqIds": [
+        "REQ-45"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-show-2nd-innings-chase-context-on-the-live-scoring-screen-by-computing-and-displaying-the-target-from-the-1st-innings-total-target-first-innings-runs-1-along-with-remaining-runs-needed",
+      "title": "Show 2nd-innings chase context on the Live Scoring screen by computing and displaying the target from the 1st innings total (target = first innings runs + 1), along with remaining runs needed.",
+      "reqIds": [
+        "REQ-46"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-automatically-detect-a-successful-chase-in-the-2nd-innings-and-immediately-mark-the-match-as-won-in-the-ui-flow-by-preventing-further-ball-recording-and-taking-the-scorer-to-the-match-summary-screen-when-the-2nd-innings-total-reaches-or-exceeds-the-target",
+      "title": "Automatically detect a successful chase in the 2nd innings and immediately mark the match as won in the UI flow by preventing further ball recording and taking the scorer to the Match Summary screen when the 2nd innings total reaches or exceeds the target.",
+      "reqIds": [
+        "REQ-47"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-winning-details-to-the-match-summary-screen-including-the-target-and-a-human-readable-result-line-that-includes-win-margin-by-runs-wickets-or-tie",
+      "title": "Add winning details to the Match Summary screen, including the target and a human-readable result line that includes win margin (by runs, wickets, or tie).",
+      "reqIds": [
+        "REQ-48"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -289,6 +420,30 @@
     {
       "id": "AR-7",
       "summary": "Add match management option to delete old/saved matches from on-device storage (e.g., from Matches dashboard).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Add an option/screen to view batsman and bowler statistics (per match/innings) from the UI.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Allow manual selection of striker and non-striker at innings start, and require selecting the next batter after a wicket (do not auto-populate batters).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Automatically end an innings when the batting side is all out (no eligible next batter available after the final wicket).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "When the 2nd innings team surpasses the 1st innings score, automatically mark the match as won and show target + winning details (target, result/winner, win margin) in the UI.",
       "reqIds": [],
       "status": "pending"
     }

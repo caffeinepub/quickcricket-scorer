@@ -8,6 +8,7 @@ import MatchSetupPage from './pages/MatchSetupPage';
 import LiveScoringPage from './pages/LiveScoringPage';
 import MatchSummaryPage from './pages/MatchSummaryPage';
 import InningsSummaryPage from './pages/InningsSummaryPage';
+import MatchStatsPage from './pages/MatchStatsPage';
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -49,12 +50,19 @@ const matchSummaryRoute = createRoute({
   component: MatchSummaryPage,
 });
 
+const matchStatsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/match/$matchId/stats',
+  component: MatchStatsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   setupRoute,
   scoringRoute,
   inningsSummaryRoute,
   matchSummaryRoute,
+  matchStatsRoute,
 ]);
 
 const router = createRouter({ routeTree });

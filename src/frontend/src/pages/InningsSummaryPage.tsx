@@ -1,126 +1,260 @@
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useGetMatch, useStartInnings } from '../hooks/useQueries';
 import { useConnectivity } from '../hooks/useConnectivity';
+import { parseMatchId } from '../utils/parseMatchId';
+import { formatTossInfo } from '../utils/formatTossInfo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowRight } from 'lucide-react';
+import { AlertCircle, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
+import type { Player, Ball } from '../backend';
 
 export default function InningsSummaryPage() {
-  const { matchId } = useParams({ from: '/match/$matchId/innings-summary' });
+  const { matchId: rawMatchId } = useParams({ from: '/match/$matchId/innings-summary' });
   const navigate = useNavigate();
-  const { data: match, isLoading } = useGetMatch(BigInt(matchId));
-  const startInnings = useStartInnings();
   const { isOffline } = useConnectivity();
 
+  const parseResult = parseMatchId(rawMatchId);
+  const { data: match, isLoading, error } = useGetMatch(parseResult.success ? parseResult.value : BigInt(0));
+  const startInnings = useStartInnings();
+
+  if (!parseResult.success) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardContent className="p-8 sm:p-12 text-center">
+          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg sm:text-xl font-semibold mb-2">Invalid Match ID</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6">{parseResult.error}</p>
+          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return <div className="text-center py-12">Loading match...</div>;
+  }
+
+  if (error) {
+    console.error('Match loading error:', error);
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardContent className="p-8 sm:p-12 text-center">
+          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg sm:text-xl font-semibold mb-2">Could Not Load Match</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6">
+            {error instanceof Error ? error.message : 'Failed to load match data'}
+          </p>
+          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!match) {
-    return <div className="text-center py-12">Match not found</div>;
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardContent className="p-8 sm:p-12 text-center">
+          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg sm:text-xl font-semibold mb-2">Match Not Found</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6">
+            Unable to load match data from this device
+          </p>
+          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   const lastInnings = match.innings[match.innings.length - 1];
+  if (!lastInnings) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardContent className="p-8 sm:p-12 text-center">
+          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg sm:text-xl font-semibold mb-2">No Innings Data</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6">
+            No innings data available for this match
+          </p>
+          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const handleStartNextInnings = async () => {
+  const matchId = parseResult.value;
+
+  // Calculate batting statistics
+  const battingStats = new Map<string, { runs: number; balls: number; fours: number; sixes: number; isOut: boolean }>();
+
+  lastInnings.battingTeam.players.forEach((player) => {
+    battingStats.set(player.id.toString(), { runs: 0, balls: 0, fours: 0, sixes: 0, isOut: false });
+  });
+
+  lastInnings.balls.forEach((ball: Ball) => {
+    const playerId = ball.batsman.id.toString();
+    const stats = battingStats.get(playerId);
+    if (stats) {
+      const runs = Number(ball.runs);
+      stats.runs += runs;
+      
+      // Only count legal deliveries as balls faced
+      const isLegalDelivery = ball.extras ? ball.extras.legalDelivery : true;
+      if (isLegalDelivery) {
+        stats.balls += 1;
+      }
+      
+      if (runs === 4) stats.fours += 1;
+      if (runs === 6) stats.sixes += 1;
+      if (ball.isWicket) stats.isOut = true;
+    }
+  });
+
+  const totalRuns = lastInnings.balls.reduce((sum, b) => sum + Number(b.runs), 0);
+  const totalWickets = lastInnings.balls.filter((b) => b.isWicket).length;
+  const legalBalls = lastInnings.balls.filter((b) => (b.extras ? b.extras.legalDelivery : true));
+  const totalOvers = Math.floor(legalBalls.length / 6);
+  const ballsInOver = legalBalls.length % 6;
+
+  const handleStartSecondInnings = async () => {
     if (match.innings.length >= 2) {
-      navigate({ to: `/match/${matchId}/summary` });
+      toast.error('Both innings have already been played');
       return;
     }
 
     try {
+      const battingTeam = lastInnings.bowlingTeam;
+      const bowlingTeam = lastInnings.battingTeam;
+      const overs = match.oversPerInnings ? BigInt(match.oversPerInnings) : null;
+
       await startInnings.mutateAsync({
-        matchId: BigInt(matchId),
-        battingTeam: match.teams[1],
-        bowlingTeam: match.teams[0],
-        overs: match.oversPerInnings ?? null,
+        matchId,
+        battingTeam,
+        bowlingTeam,
+        overs,
       });
-      if (isOffline) {
-        toast.success('Second innings started (saved locally)');
-      } else {
-        toast.success('Second innings started');
-      }
+
+      toast.success('Second innings started');
       navigate({ to: `/match/${matchId}` });
     } catch (error) {
-      toast.error('Failed to start innings');
-      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start second innings';
+      toast.error(`Start innings failed: ${errorMessage}`);
+      console.error('Start innings failed:', error);
     }
   };
 
-  // Calculate legal balls for display
-  const legalBalls = lastInnings.balls.filter((b) => {
-    if (!b.extras) return true;
-    return b.extras.legalDelivery;
-  }).length;
-  const overs = Math.floor(legalBalls / 6);
-  const ballsInOver = legalBalls % 6;
+  const handleViewMatchSummary = () => {
+    navigate({ to: `/match/${matchId}/summary` });
+  };
+
+  const handleViewStats = () => {
+    try {
+      navigate({ to: `/match/${matchId}/stats` });
+    } catch (error) {
+      console.error('Navigation to statistics failed:', error);
+      toast.error('Failed to navigate to statistics');
+    }
+  };
+
+  const isSecondInnings = match.innings.length >= 2;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {isOffline && (
-        <Card className="bg-amber-50 border-amber-200">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-800 font-medium">
-              ⚠️ Offline Mode: Viewing locally saved data
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Innings Summary</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Innings Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <h2 className="text-3xl font-bold mb-2">{lastInnings.battingTeam.name}</h2>
-            <div className="text-5xl font-bold text-primary mb-4">
-              {Number(lastInnings.totalRuns)}/{Number(lastInnings.totalWickets)}
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground break-words">
+              {formatTossInfo(match)}
             </div>
-            <p className="text-muted-foreground">
-              {overs}.{ballsInOver} overs
-            </p>
+            <div className="text-center space-y-2 pt-2">
+              <h2 className="text-xl sm:text-2xl font-bold break-words">{lastInnings.battingTeam.name}</h2>
+              <div className="text-4xl sm:text-5xl font-bold">
+                {totalRuns}/{totalWickets}
+              </div>
+              <div className="text-lg sm:text-xl text-muted-foreground">
+                {totalOvers}.{ballsInOver} Overs
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Batting Summary</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Batting Scorecard</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Batter</TableHead>
-                <TableHead className="text-right">Runs</TableHead>
-                <TableHead className="text-right">Balls</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lastInnings.battingTeam.players.map((player) => {
-                const balls = lastInnings.balls.filter((b) => b.batsman.id === player.id);
-                const runs = balls.reduce((sum, b) => sum + Number(b.runs), 0);
-                const legalBallsFaced = balls.filter((b) => !b.extras || b.extras.legalDelivery).length;
-                return (
-                  <TableRow key={Number(player.id)}>
-                    <TableCell className="font-medium">{player.name}</TableCell>
-                    <TableCell className="text-right">{runs}</TableCell>
-                    <TableCell className="text-right">{legalBallsFaced}</TableCell>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs sm:text-sm">Batsman</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">R</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">B</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">4s</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">6s</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">SR</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {Array.from(battingStats.entries()).map(([playerId, stats]) => {
+                    const player = lastInnings.battingTeam.players.find((p) => p.id.toString() === playerId);
+                    if (!player) return null;
+
+                    const strikeRate = stats.balls > 0 ? ((stats.runs / stats.balls) * 100).toFixed(1) : '0.0';
+
+                    return (
+                      <TableRow key={playerId}>
+                        <TableCell className="text-xs sm:text-sm font-medium break-words max-w-[120px] sm:max-w-none">
+                          {player.name}
+                          {stats.isOut && <span className="text-muted-foreground ml-1">(out)</span>}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right">{stats.runs}</TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right">{stats.balls}</TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right">{stats.fours}</TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right">{stats.sixes}</TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right">{strikeRate}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Button onClick={handleStartNextInnings} size="lg" className="w-full">
-        {match.innings.length >= 2 ? 'View Match Summary' : 'Start Second Innings'}
-        <ArrowRight className="h-5 w-5 ml-2" />
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <Button
+          variant="outline"
+          onClick={handleViewStats}
+          className="flex-1 touch-manipulation"
+          size="lg"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          View Statistics
+        </Button>
+        {!isSecondInnings && (
+          <Button
+            onClick={handleStartSecondInnings}
+            disabled={startInnings.isPending}
+            size="lg"
+            className="flex-1"
+          >
+            {startInnings.isPending ? 'Starting...' : 'Start Second Innings'}
+          </Button>
+        )}
+        {isSecondInnings && (
+          <Button onClick={handleViewMatchSummary} size="lg" className="flex-1">
+            View Match Summary
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -39,6 +39,7 @@ export interface Match {
   'teams' : Array<Team>,
   'owner' : Principal,
   'oversPerInnings' : [] | [bigint],
+  'toss' : [] | [TossInfo],
   'innings' : Array<Innings>,
 }
 export interface Player {
@@ -51,6 +52,9 @@ export interface Team {
   'name' : string,
   'players' : Array<Player>,
 }
+export type TossDecision = { 'bat' : null } |
+  { 'bowl' : null };
+export interface TossInfo { 'decision' : TossDecision, 'winnerTeamId' : bigint }
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -58,7 +62,10 @@ export type UserRole = { 'admin' : null } |
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'createMatch' : ActorMethod<[Array<Team>, [] | [bigint]], bigint>,
+  'createMatch' : ActorMethod<
+    [Array<Team>, [] | [bigint], [] | [TossInfo]],
+    bigint
+  >,
   'deleteMatch' : ActorMethod<[bigint], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -66,9 +73,8 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listMatches' : ActorMethod<[], Array<Match>>,
-  'recordBall' : ActorMethod<[bigint, bigint, Ball], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'startInnings' : ActorMethod<[bigint, Team, Team, [] | [bigint]], undefined>,
+  'updateTossInfo' : ActorMethod<[bigint, TossInfo], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

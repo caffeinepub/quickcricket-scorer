@@ -1,7 +1,7 @@
 // Serialization helpers for storing backend types in browser storage
 // Handles BigInt-safe JSON encoding/decoding with proper Principal handling
 
-import type { Match, Innings, Ball, Team, Player, BallExtras } from '../backend';
+import type { Match, Innings, Ball, Team, Player, BallExtras, TossInfo } from '../backend';
 
 interface SerializedMatch {
   id: string;
@@ -9,8 +9,14 @@ interface SerializedMatch {
   teams: SerializedTeam[];
   innings: SerializedInnings[];
   oversPerInnings: string | null;
+  toss: SerializedTossInfo | null;
   _localOnly?: boolean;
   _lastModified?: number;
+}
+
+interface SerializedTossInfo {
+  winnerTeamId: string;
+  decision: 'bat' | 'bowl';
 }
 
 interface SerializedTeam {
@@ -59,6 +65,7 @@ export function serializeMatch(match: Match, localOnly = false): string {
     teams: match.teams.map(serializeTeam),
     innings: match.innings.map(serializeInnings),
     oversPerInnings: match.oversPerInnings?.toString() ?? null,
+    toss: match.toss ? serializeTossInfo(match.toss) : null,
     _localOnly: localOnly,
     _lastModified: Date.now(),
   };
@@ -73,7 +80,22 @@ export function deserializeMatch(json: string): Match & { _localOnly?: boolean }
     teams: data.teams.map(deserializeTeam),
     innings: data.innings.map(deserializeInnings),
     oversPerInnings: data.oversPerInnings ? BigInt(data.oversPerInnings) : undefined,
+    toss: data.toss ? deserializeTossInfo(data.toss) : undefined,
     _localOnly: data._localOnly,
+  };
+}
+
+function serializeTossInfo(toss: TossInfo): SerializedTossInfo {
+  return {
+    winnerTeamId: toss.winnerTeamId.toString(),
+    decision: toss.decision as 'bat' | 'bowl',
+  };
+}
+
+function deserializeTossInfo(toss: SerializedTossInfo): TossInfo {
+  return {
+    winnerTeamId: BigInt(toss.winnerTeamId),
+    decision: toss.decision as any,
   };
 }
 
