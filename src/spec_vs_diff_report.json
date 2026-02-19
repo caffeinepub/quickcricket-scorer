@@ -1,79 +1,19 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T18:21:48.756Z",
-  "summary": "Diff adds chase/target utility functions and updates LiveScoringPage and MatchSummaryPage to use them. Some acceptance-criteria details (toast content, blocking further scoring, and navigation behavior) are not directly verifiable from the truncated code shown. Diff also includes several unrelated frontend enhancements/routes not requested in the BuildRequest.",
-  "missing_requirements": [
-    {
-      "id": "REQ-47",
-      "requirement": "During second innings scoring, as soon as the second innings total runs becomes >= target, the app shows an English success toast indicating the match is won and by which team.",
-      "reason": "LiveScoringPage imports `toast`, computes `chaseAchieved`, and adds `chaseWonToastShown` state, but the provided truncated snippet does not show any effect/handler that fires a success toast containing the winning team name.",
-      "evidence": [
-        "frontend/src/pages/LiveScoringPage.tsx"
-      ]
-    },
-    {
-      "id": "REQ-47",
-      "requirement": "After the chase is achieved, the Live Scoring controls no longer allow recording additional balls for that match (either disabled or blocked with an English message).",
-      "reason": "The truncated LiveScoringPage snippet does not show any conditional disabling/blocking of ball-recording controls based on `chaseAchieved`.",
-      "evidence": [
-        "frontend/src/pages/LiveScoringPage.tsx"
-      ]
-    },
-    {
-      "id": "REQ-47",
-      "requirement": "After the chase is achieved, the app navigates to the Match Summary screen for the match (without getting stuck on the Live Scoring page).",
-      "reason": "Navigation behavior on chase completion is claimed in the file summary, but the truncated LiveScoringPage code excerpt does not show a `navigate` call tied to `chaseAchieved`.",
-      "evidence": [
-        "frontend/src/pages/LiveScoringPage.tsx",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "id": "REQ-48",
-      "requirement": "The winner heading on MatchSummaryPage remains correct for win/lose/tie outcomes and is consistent with the new result sentence.",
-      "reason": "MatchSummaryPage winner determination logic is truncated mid-expression, so correctness/consistency with tie outcome cannot be verified from the provided diff excerpt.",
-      "evidence": [
-        "frontend/src/pages/MatchSummaryPage.tsx"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Added a new match statistics route/view and statistics navigation not requested by REQ-46/47/48.",
-      "reason": "Frontend summaries mention a \"new match statistics route\" in App.tsx and statistics navigation from summary pages, which is outside the BuildRequest scope.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Connectivity probing improvements and detailed offline/online reason reporting not requested by the BuildRequest.",
-      "reason": "Frontend summaries describe expanded backend health checks and connectivity reasons; BuildRequest is focused on chase/target display and auto-win behavior.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Additional hardening/guards preventing ball recording when innings is complete due to overs limit (legal deliveries only) beyond the chase-win requirement.",
-      "reason": "Frontend summaries mention hardened ball recording and local store integrity guards for overs completion; REQ-47 only specifies blocking after chase achieved (target reached).",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Multiple unrelated mobile responsiveness/theme/CSS adjustments not requested by the BuildRequest.",
-      "reason": "Frontend summaries mention global style changes (OKLCH color system, mobile-safety CSS, touch target sizing) not part of REQ-46/47/48.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    }
-  ],
-  "confidence": 0.62,
+  "generatedAt": "2026-02-19T11:47:13.546Z",
+  "summary": "The diff implements all three requirements: REQ-71 (Undo Last Ball button with full functionality including toast messages), REQ-72 (state preservation across navigation by restoring striker/non-striker/bowler from ball history), and REQ-73 (over-by-over breakdown using OverByOverBreakdown component). All acceptance criteria appear to be addressed with appropriate implementation evidence.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.92,
   "changed_files": [
     "frontend-file-summaries.txt",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/offline/localMatchStore.ts",
     "frontend/src/pages/LiveScoringPage.tsx",
-    "frontend/src/pages/MatchSummaryPage.tsx",
-    "frontend/src/utils/chase.ts",
+    "frontend/src/pages/MatchSetupPage.tsx",
+    "frontend/src/pages/MatchStatsPage.tsx",
+    "frontend/src/pages/MatchesDashboardPage.tsx",
     "project_state.json"
   ]
 }

@@ -1,73 +1,82 @@
 {
   "kind": "build_request",
-  "title": "Add chase target display and auto-win when target is reached",
-  "projectName": "Cricket Scorer",
-  "priority": "normal",
+  "title": "Fix Undo functionality and improve over-by-over reporting on Live Scoring screen",
+  "projectName": "QuickCricket Scorer",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-46",
-      "text": "Show 2nd-innings chase context on the Live Scoring screen by computing and displaying the target from the 1st innings total (target = first innings runs + 1), along with remaining runs needed.",
+      "id": "REQ-71",
+      "text": "Add a visible and functional 'Undo last ball' button on the Live Scoring page that removes the most recently recorded ball from the current innings ball history and updates all displayed scoreboard values (runs, wickets, overs, balls) accordingly, with support for both local-only matches and backend-synced matches.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-user-final"
         ],
         "quotes": [
-          "When 2nd batting team crosses the first batting teams score it's victory. Add target and winning details"
+          "Undo option is not available."
         ]
       },
       "acceptanceCriteria": [
-        "When a match has 2 innings and the current innings is the second innings, LiveScoringPage displays a clearly labeled target (e.g., \"Target: 151\") computed as (first innings total runs + 1).",
-        "When a match is in the second innings, LiveScoringPage displays a clearly labeled remaining requirement (e.g., \"Need 37 more runs to win\").",
-        "All new user-facing labels/messages are in English."
+        "An 'Undo last ball' button is visible on the Live Scoring screen at all times during active scoring",
+        "Clicking 'Undo' removes the last recorded ball from the innings ball history",
+        "All scoreboard values (total runs, wickets, overs, balls, striker runs, non-striker runs, bowler stats) update immediately after undo",
+        "Undo works correctly for both local-only matches and backend-synced matches",
+        "The button is disabled when there are no balls to undo (innings ball history is empty)",
+        "User sees a success toast message after successfully undoing a ball"
       ]
     },
     {
-      "id": "REQ-47",
-      "text": "Automatically detect a successful chase in the 2nd innings and immediately mark the match as won in the UI flow by preventing further ball recording and taking the scorer to the Match Summary screen when the 2nd innings total reaches or exceeds the target.",
+      "id": "REQ-72",
+      "text": "Fix the Live Scoring page state reload behavior so that navigating away to Match Stats (or any other page) and then returning to Live Scoring does not reset the striker and non-striker selections or require re-selecting batsmen, preserving the current batting state across navigation.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-user-final"
         ],
         "quotes": [
-          "When 2nd batting team crosses the first batting teams score it's victory. Add target and winning details"
+          "Still going to stats and coming back to match is asking to select the batsmen."
         ]
       },
       "acceptanceCriteria": [
-        "During second innings scoring, as soon as the second innings total runs becomes >= target, the app shows an English success toast indicating the match is won and by which team.",
-        "After the chase is achieved, the Live Scoring controls no longer allow recording additional balls for that match (either disabled or blocked with an English message).",
-        "After the chase is achieved, the app navigates to the Match Summary screen for the match (without getting stuck on the Live Scoring page)."
+        "After navigating from Live Scoring to Match Stats and back, the striker and non-striker remain selected without requiring re-selection",
+        "The bowler selection is also preserved across navigation",
+        "All scoring controls (run buttons, wicket, extras) remain enabled and functional after returning",
+        "The ball history and scoreboard values remain accurate after navigation round-trip",
+        "No 'Please select striker and non-striker' blocking message appears when returning to a match that already has batters selected"
       ]
     },
     {
-      "id": "REQ-48",
-      "text": "Add winning details to the Match Summary screen, including the target and a human-readable result line that includes win margin (by runs, wickets, or tie).",
+      "id": "REQ-73",
+      "text": "Replace the existing 'Last Over' summary on the Live Scoring screen with a comprehensive over-by-over breakdown that displays runs scored in each individual completed over (1st over, 2nd over, 3rd over, etc.) throughout the current innings, not just the most recent over, so the scorer can see the full scoring progression.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-user-final"
         ],
         "quotes": [
-          "When 2nd batting team crosses the first batting teams score it's victory. Add target and winning details"
+          "Not able to view over by over report. Require 1st over how many runs scored and 2nd over like individual over data."
         ]
       },
       "acceptanceCriteria": [
-        "MatchSummaryPage displays the target (first innings runs + 1) when two innings exist.",
-        "MatchSummaryPage displays an English result sentence matching the outcome: (a) if Team 2 chases successfully: \"<Team2> won by <wickets remaining> wickets\"; (b) if Team 1 defends successfully: \"<Team1> won by <run margin> runs\"; (c) if equal scores: \"Match tied\".",
-        "The winner heading on MatchSummaryPage remains correct for win/lose/tie outcomes and is consistent with the new result sentence."
+        "The Live Scoring screen displays a list/grid showing runs scored in each completed over (Over 1: X runs, Over 2: Y runs, etc.)",
+        "The breakdown updates immediately after each over is completed (6 legal deliveries)",
+        "The display shows overs in chronological order (1st, 2nd, 3rd...) so the scorer can see scoring progression",
+        "The component uses the existing computeOverByOverBreakdown utility to compute over data",
+        "The over-by-over breakdown is visible and scrollable on mobile screens without layout overflow"
       ]
     }
   ],
   "constraints": [
-    "Do not edit any files under frontend/src/components/ui (Shadcn UI components must be composed, not modified).",
-    "Do not edit frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts (immutable paths).",
-    "Keep the backend single-actor architecture (all Motoko logic in backend/main.mo); only add migration code if state schema upgrades are required."
+    "Do not modify backend/main.mo unless absolutely required for undo functionality",
+    "Preserve existing offline-first patterns for all match and ball operations",
+    "Do not break existing state persistence in localMatchStore",
+    "Ensure all changes work for both local-only matches and backend-synced matches"
   ],
   "nonGoals": [
-    "Do not implement Duckworth-Lewis-Stern (DLS) or rain rules.",
-    "Do not add tournament/league points tables.",
-    "Do not add third-innings or multi-innings match formats beyond the existing two-innings flow."
+    "Adding redo functionality (only undo is requested)",
+    "Changing the visual theme or color scheme",
+    "Modifying toss information display or match summary layouts",
+    "Adding new statistics views beyond what already exists"
   ],
   "imageRequirements": {
     "required": [],

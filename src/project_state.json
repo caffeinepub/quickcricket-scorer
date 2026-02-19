@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 29,
+  "projectStateVersion": 47,
   "summary": "Build a mobile-friendly cricket scoring app with offline support and on-device data storage.",
   "architectural_notes": [
     "Adopt an offline-first approach for mobile: persist match/scoring state locally on-device and support resuming without network connectivity."
@@ -17,7 +17,7 @@
     "Batting selection is auto-populated; user cannot manually choose striker/non-striker at innings start or select the next batter after a wicket.",
     "Innings is not being completed/ended automatically after the selected number of overs are bowled."
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
       "id": "feature-create-a-react-ui-to-set-up-a-match-instantly-select-number-of-overs-or-unlimited-add-two-teams-add-players-for-each-team-choose-opening-batters-and-opening-bowler-and-start-the-first-innings",
@@ -378,6 +378,182 @@
         "REQ-48"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-the-live-scoring-screen-to-show-a-clear-last-over-summary-computed-from-the-most-recent-6-legal-deliveries-in-the-current-innings-ignoring-illegal-deliveries-like-wides-no-balls-for-the-6-ball-count-but-including-their-runs-in-the-displayed-over-total-and-display-both-the-over-total-runs-and-a-ball-by-ball-breakdown-e-g-1-0-4-w-wd1-nb1-2-using-short-english-labels",
+      "title": "Update the Live Scoring screen to show a clear 'Last Over' summary computed from the most recent 6 legal deliveries in the current innings (ignoring illegal deliveries like wides/no-balls for the 6-ball count, but including their runs in the displayed over total), and display both the over total runs and a ball-by-ball breakdown (e.g., 1 0 4 W WD1 NB1 2) using short, English labels.",
+      "reqIds": [
+        "REQ-49"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-reusable-frontend-utility-to-compute-a-last-over-view-model-from-an-innings-ball-history-based-on-legal-delivery-counting-rules-already-used-for-over-calculations-and-use-this-utility-wherever-the-last-over-ui-is-rendered-to-avoid-duplicating-logic",
+      "title": "Add a reusable frontend utility to compute a 'last over' view model from an innings ball history, based on legal-delivery counting rules already used for over calculations, and use this utility wherever the last-over UI is rendered to avoid duplicating logic.",
+      "reqIds": [
+        "REQ-50"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-team-players-management-workflow-so-a-user-can-create-and-save-a-team-name-and-player-list-once-then-reuse-select-that-saved-team-roster-during-match-setup-instead-of-retyping-player-names-every-time-with-all-user-facing-text-in-english",
+      "title": "Add a Team & Players management workflow so a user can create and save a team name and player list once, then reuse/select that saved team roster during Match Setup instead of retyping player names every time (with all user-facing text in English).",
+      "reqIds": [
+        "REQ-51"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-persist-per-player-performance-summaries-batting-and-bowling-derived-from-recorded-balls-so-that-a-user-can-view-a-player-s-accumulated-stats-across-matches-not-only-within-a-single-match-session",
+      "title": "Persist per-player performance summaries (batting and bowling) derived from recorded balls so that a user can view a player's accumulated stats across matches, not only within a single match session.",
+      "reqIds": [
+        "REQ-52"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-match-creation-flow-so-a-user-can-create-a-match-without-seeing-the-backend-error-unauthorized-only-users-can-create-matches-when-they-are-not-logged-in-or-do-not-have-backend-user-permissions",
+      "title": "Fix the match creation flow so a user can create a match without seeing the backend error \"Unauthorized: Only users can create matches\" when they are not logged in or do not have backend user permissions.",
+      "reqIds": [
+        "REQ-54"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-create-match-decision-logic-to-treat-not-authenticated-as-a-local-only-workflow-even-if-the-device-is-online-and-the-backend-canister-is-reachable-and-ensure-user-facing-messages-remain-in-english-and-consistent-with-existing-offline-online-messaging",
+      "title": "Update frontend create-match decision logic to treat \"not authenticated\" as a local-only workflow (even if the device is online and the backend canister is reachable), and ensure user-facing messages remain in English and consistent with existing offline/online messaging.",
+      "reqIds": [
+        "REQ-55"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-internet-identity-login-flow-so-that-pressing-the-login-button-reliably-completes-authentication-and-provides-clear-user-facing-error-feedback-when-login-cannot-start-or-fails",
+      "title": "Fix the Internet Identity login flow so that pressing the \"Login\" button reliably completes authentication and provides clear user-facing error feedback when login cannot start or fails.",
+      "reqIds": [
+        "REQ-57"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-match-creation-navigation-flow-so-that-after-creating-a-match-especially-when-authenticated-online-and-using-the-backend-the-live-scoring-screen-has-an-initialized-first-innings-with-batting-bowling-teams-and-a-usable-player-roster-so-the-scorer-can-select-striker-non-striker-bowler-immediately",
+      "title": "Fix the match creation + navigation flow so that after creating a match (especially when authenticated/online and using the backend), the Live Scoring screen has an initialized first innings with batting/bowling teams and a usable player roster so the scorer can select striker/non-striker/bowler immediately.",
+      "reqIds": [
+        "REQ-58"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-defensive-ui-handling-on-the-live-scoring-page-for-invalid-or-incomplete-match-state-e-g-match-has-no-innings-or-has-empty-team-player-rosters-so-the-scorer-is-not-blocked-with-a-non-functional-player-selector",
+      "title": "Add defensive UI handling on the Live Scoring page for invalid or incomplete match state (e.g., match has no innings or has empty team/player rosters) so the scorer is not blocked with a non-functional player selector.",
+      "reqIds": [
+        "REQ-59"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-start-second-innings-flow-to-correctly-start-innings-2-for-both-local-only-matches-and-backend-stored-matches-when-the-match-is-not-local-only-and-the-app-is-online-with-an-available-backend-actor-start-the-second-innings-on-the-backend-and-then-persist-the-updated-match-locally-otherwise-fall-back-to-the-existing-local-only-start-innings-behavior",
+      "title": "Update the frontend “Start Second Innings” flow to correctly start innings 2 for both local-only matches and backend-stored matches: when the match is not local-only and the app is online with an available backend actor, start the second innings on the backend and then persist the updated match locally; otherwise, fall back to the existing local-only start-innings behavior.",
+      "reqIds": [
+        "REQ-61"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-match-progression-ui-ux-so-the-app-does-not-present-a-match-as-complete-after-only-one-innings-and-ensures-the-scorer-is-routed-to-the-innings-summary-with-the-start-second-innings-action-when-innings-1-ends-by-overs-or-all-out",
+      "title": "Fix match progression UI/UX so the app does not present a match as complete after only one innings, and ensures the scorer is routed to the Innings Summary (with the “Start Second Innings” action) when innings 1 ends by overs or all-out.",
+      "reqIds": [
+        "REQ-62"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-live-scoring-page-so-the-scorer-can-select-striker-non-striker-and-bowler-the-selectors-must-not-be-permanently-disabled-greyed-out-when-an-innings-is-active-and-both-team-rosters-are-present",
+      "title": "Fix the Live Scoring page so the scorer can select striker, non-striker, and bowler (the selectors must not be permanently disabled/greyed-out) when an innings is active and both team rosters are present.",
+      "reqIds": [
+        "REQ-63"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-clear-english-user-facing-guidance-on-the-live-scoring-page-when-scoring-actions-are-disabled-due-to-missing-selections-so-the-user-understands-why-controls-are-disabled-and-what-to-do-next",
+      "title": "Add clear English user-facing guidance on the Live Scoring page when scoring actions are disabled due to missing selections, so the user understands why controls are disabled and what to do next.",
+      "reqIds": [
+        "REQ-64"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-livescoringpage-component-so-that-the-striker-and-non-striker-select-dropdowns-are-enabled-and-functional-immediately-after-creating-a-match-and-navigating-to-the-live-scoring-screen-allowing-the-scorer-to-select-batters-from-the-batting-team-roster-without-encountering-disabled-greyed-out-controls",
+      "title": "Fix the LiveScoringPage component so that the striker and non-striker select dropdowns are enabled and functional immediately after creating a match and navigating to the Live Scoring screen, allowing the scorer to select batters from the batting team roster without encountering disabled/greyed-out controls.",
+      "reqIds": [
+        "REQ-65"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-match-initialization-flow-in-both-usecreatematch-mutation-and-ensurematchinitialized-utility-correctly-populates-the-first-innings-with-the-batting-team-roster-and-bowling-team-roster-derived-from-the-toss-decision-so-that-livescoringpage-has-complete-player-lists-available-for-selection-immediately-after-match-creation",
+      "title": "Ensure the match initialization flow (in both useCreateMatch mutation and ensureMatchInitialized utility) correctly populates the first innings with the batting team roster and bowling team roster derived from the toss decision, so that LiveScoringPage has complete player lists available for selection immediately after match creation.",
+      "reqIds": [
+        "REQ-66"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-any-state-initialization-or-data-loading-race-conditions-in-livescoringpage-that-cause-the-striker-non-striker-selectors-to-render-in-a-disabled-state-even-when-match-and-innings-data-are-available-ensuring-the-component-correctly-detects-when-player-rosters-are-loaded-and-enables-the-controls",
+      "title": "Fix any state initialization or data loading race conditions in LiveScoringPage that cause the striker/non-striker selectors to render in a disabled state even when match and innings data are available, ensuring the component correctly detects when player rosters are loaded and enables the controls.",
+      "reqIds": [
+        "REQ-67"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-a-cumulative-over-by-over-runs-breakdown-on-the-live-scoring-screen-so-the-scorer-can-see-runs-scored-in-each-completed-over-of-the-current-innings-not-just-the-last-over-summary",
+      "title": "Display a cumulative over-by-over runs breakdown on the Live Scoring screen so the scorer can see runs scored in each completed over of the current innings, not just the last over summary.",
+      "reqIds": [
+        "REQ-68"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-match-stats-view-navigation-and-state-so-that-switching-to-the-stats-screen-during-a-match-and-then-returning-to-live-scoring-does-not-break-the-run-wicket-action-buttons-or-disable-scoring-controls",
+      "title": "Fix the Match Stats view navigation and state so that switching to the stats screen during a match and then returning to Live Scoring does not break the run/wicket action buttons or disable scoring controls.",
+      "reqIds": [
+        "REQ-69"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-livescoringpage-correctly-reloads-and-reinitializes-its-state-when-navigating-back-from-match-stats-or-any-other-page-without-resetting-striker-non-striker-bowler-selections-or-disabling-scoring-controls",
+      "title": "Ensure LiveScoringPage correctly reloads and reinitializes its state when navigating back from Match Stats or any other page, without resetting striker/non-striker/bowler selections or disabling scoring controls.",
+      "reqIds": [
+        "REQ-70"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-visible-and-functional-undo-last-ball-button-on-the-live-scoring-page-that-removes-the-most-recently-recorded-ball-from-the-current-innings-ball-history-and-updates-all-displayed-scoreboard-values-runs-wickets-overs-balls-accordingly-with-support-for-both-local-only-matches-and-backend-synced-matches",
+      "title": "Add a visible and functional 'Undo last ball' button on the Live Scoring page that removes the most recently recorded ball from the current innings ball history and updates all displayed scoreboard values (runs, wickets, overs, balls) accordingly, with support for both local-only matches and backend-synced matches.",
+      "reqIds": [
+        "REQ-71"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-live-scoring-page-state-reload-behavior-so-that-navigating-away-to-match-stats-or-any-other-page-and-then-returning-to-live-scoring-does-not-reset-the-striker-and-non-striker-selections-or-require-re-selecting-batsmen-preserving-the-current-batting-state-across-navigation",
+      "title": "Fix the Live Scoring page state reload behavior so that navigating away to Match Stats (or any other page) and then returning to Live Scoring does not reset the striker and non-striker selections or require re-selecting batsmen, preserving the current batting state across navigation.",
+      "reqIds": [
+        "REQ-72"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-the-existing-last-over-summary-on-the-live-scoring-screen-with-a-comprehensive-over-by-over-breakdown-that-displays-runs-scored-in-each-individual-completed-over-1st-over-2nd-over-3rd-over-etc-throughout-the-current-innings-not-just-the-most-recent-over-so-the-scorer-can-see-the-full-scoring-progression",
+      "title": "Replace the existing 'Last Over' summary on the Live Scoring screen with a comprehensive over-by-over breakdown that displays runs scored in each individual completed over (1st over, 2nd over, 3rd over, etc.) throughout the current innings, not just the most recent over, so the scorer can see the full scoring progression.",
+      "reqIds": [
+        "REQ-73"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -445,6 +621,42 @@
       "id": "AR-11",
       "summary": "When the 2nd innings team surpasses the 1st innings score, automatically mark the match as won and show target + winning details (target, result/winner, win margin) in the UI.",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Add UI details to show runs scored in the last over (e.g., last 6 legal balls summary) during live scoring and/or in match views.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Add team management with team name + player details, and persist per-player batting and bowling statistics so player performance data is retained (and viewable) beyond a single scoring session.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Extend the Motoko backend to support saving and retrieving user-owned team rosters (team name + players) and user-owned cumulative player statistics, with access control consistent with existing match/profile authorization patterns.",
+      "reqIds": [
+        "REQ-53"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Adjust backend access control so authenticated users can be granted the required \"user\" permission to create matches (and other user operations) in a predictable way, preventing valid logged-in users from being blocked by \"Only users can create matches\" traps.",
+      "reqIds": [
+        "REQ-56"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Add backend support to start (append) the second innings for a match that currently has exactly one innings, so authenticated/online matches can progress to innings 2 instead of appearing to finish after innings 1.",
+      "reqIds": [
+        "REQ-60"
+      ],
       "status": "pending"
     }
   ],

@@ -31,6 +31,13 @@ export const TossInfo = IDL.Record({
   'decision' : TossDecision,
   'winnerTeamId' : IDL.Nat,
 });
+export const Time = IDL.Int;
+export const SavedTeam = IDL.Record({
+  'owner' : IDL.Principal,
+  'createdAt' : Time,
+  'team' : Team,
+  'updatedAt' : Time,
+});
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const BallExtras = IDL.Record({
   'noBall' : IDL.Bool,
@@ -64,6 +71,26 @@ export const Match = IDL.Record({
   'toss' : IDL.Opt(TossInfo),
   'innings' : IDL.Vec(Innings),
 });
+export const BowlingStats = IDL.Record({
+  'maidens' : IDL.Nat,
+  'wickets' : IDL.Nat,
+  'ballsBowled' : IDL.Nat,
+  'runsConceded' : IDL.Nat,
+});
+export const BattingStats = IDL.Record({
+  'fours' : IDL.Nat,
+  'outs' : IDL.Nat,
+  'runs' : IDL.Nat,
+  'sixes' : IDL.Nat,
+  'ballsFaced' : IDL.Nat,
+});
+export const PersistentPlayerStats = IDL.Record({
+  'bowlingStats' : BowlingStats,
+  'battingStats' : BattingStats,
+  'lastUpdated' : Time,
+  'playerName' : IDL.Text,
+  'matchesPlayed' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -74,17 +101,36 @@ export const idlService = IDL.Service({
       [],
     ),
   'deleteMatch' : IDL.Func([IDL.Nat], [], []),
+  'getCallerSavedTeam' : IDL.Func([], [IDL.Opt(SavedTeam)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getMatch' : IDL.Func([IDL.Nat], [IDL.Opt(Match)], ['query']),
+  'getPlayerStats' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(PersistentPlayerStats)],
+      ['query'],
+    ),
+  'getSavedTeamOf' : IDL.Func([IDL.Principal], [IDL.Opt(SavedTeam)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'listAllPlayerStats' : IDL.Func(
+      [],
+      [IDL.Vec(PersistentPlayerStats)],
+      ['query'],
+    ),
   'listMatches' : IDL.Func([], [IDL.Vec(Match)], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'saveTeam' : IDL.Func([Team], [], []),
+  'startSecondInnings' : IDL.Func([IDL.Nat, Innings], [], []),
+  'updatePlayerStats' : IDL.Func(
+      [IDL.Text, BattingStats, BowlingStats],
+      [],
+      [],
+    ),
   'updateTossInfo' : IDL.Func([IDL.Nat, TossInfo], [], []),
 });
 
@@ -110,6 +156,13 @@ export const idlFactory = ({ IDL }) => {
   const TossInfo = IDL.Record({
     'decision' : TossDecision,
     'winnerTeamId' : IDL.Nat,
+  });
+  const Time = IDL.Int;
+  const SavedTeam = IDL.Record({
+    'owner' : IDL.Principal,
+    'createdAt' : Time,
+    'team' : Team,
+    'updatedAt' : Time,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const BallExtras = IDL.Record({
@@ -144,6 +197,26 @@ export const idlFactory = ({ IDL }) => {
     'toss' : IDL.Opt(TossInfo),
     'innings' : IDL.Vec(Innings),
   });
+  const BowlingStats = IDL.Record({
+    'maidens' : IDL.Nat,
+    'wickets' : IDL.Nat,
+    'ballsBowled' : IDL.Nat,
+    'runsConceded' : IDL.Nat,
+  });
+  const BattingStats = IDL.Record({
+    'fours' : IDL.Nat,
+    'outs' : IDL.Nat,
+    'runs' : IDL.Nat,
+    'sixes' : IDL.Nat,
+    'ballsFaced' : IDL.Nat,
+  });
+  const PersistentPlayerStats = IDL.Record({
+    'bowlingStats' : BowlingStats,
+    'battingStats' : BattingStats,
+    'lastUpdated' : Time,
+    'playerName' : IDL.Text,
+    'matchesPlayed' : IDL.Nat,
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -154,17 +227,40 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'deleteMatch' : IDL.Func([IDL.Nat], [], []),
+    'getCallerSavedTeam' : IDL.Func([], [IDL.Opt(SavedTeam)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getMatch' : IDL.Func([IDL.Nat], [IDL.Opt(Match)], ['query']),
+    'getPlayerStats' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(PersistentPlayerStats)],
+        ['query'],
+      ),
+    'getSavedTeamOf' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(SavedTeam)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'listAllPlayerStats' : IDL.Func(
+        [],
+        [IDL.Vec(PersistentPlayerStats)],
+        ['query'],
+      ),
     'listMatches' : IDL.Func([], [IDL.Vec(Match)], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveTeam' : IDL.Func([Team], [], []),
+    'startSecondInnings' : IDL.Func([IDL.Nat, Innings], [], []),
+    'updatePlayerStats' : IDL.Func(
+        [IDL.Text, BattingStats, BowlingStats],
+        [],
+        [],
+      ),
     'updateTossInfo' : IDL.Func([IDL.Nat, TossInfo], [], []),
   });
 };

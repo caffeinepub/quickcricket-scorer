@@ -135,12 +135,12 @@ export default function InningsSummaryPage() {
         overs,
       });
 
-      toast.success('Second innings started');
+      toast.success('Second innings started successfully');
       navigate({ to: `/match/${matchId}` });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to start second innings';
-      toast.error(`Start innings failed: ${errorMessage}`);
-      console.error('Start innings failed:', error);
+      toast.error(errorMessage);
+      console.error('Start second innings failed:', error);
     }
   };
 
@@ -229,7 +229,26 @@ export default function InningsSummaryPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
+        {!isSecondInnings && (
+          <Button
+            onClick={handleStartSecondInnings}
+            disabled={startInnings.isPending}
+            className="flex-1 touch-manipulation"
+            size="lg"
+          >
+            {startInnings.isPending ? 'Starting...' : 'Start Second Innings'}
+          </Button>
+        )}
+        {isSecondInnings && (
+          <Button
+            onClick={handleViewMatchSummary}
+            className="flex-1 touch-manipulation"
+            size="lg"
+          >
+            View Match Summary
+          </Button>
+        )}
         <Button
           variant="outline"
           onClick={handleViewStats}
@@ -239,21 +258,6 @@ export default function InningsSummaryPage() {
           <BarChart3 className="h-4 w-4 mr-2" />
           View Statistics
         </Button>
-        {!isSecondInnings && (
-          <Button
-            onClick={handleStartSecondInnings}
-            disabled={startInnings.isPending}
-            size="lg"
-            className="flex-1"
-          >
-            {startInnings.isPending ? 'Starting...' : 'Start Second Innings'}
-          </Button>
-        )}
-        {isSecondInnings && (
-          <Button onClick={handleViewMatchSummary} size="lg" className="flex-1">
-            View Match Summary
-          </Button>
-        )}
       </div>
     </div>
   );

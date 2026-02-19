@@ -1,228 +1,169 @@
-// On-device match store for offline-first functionality
-// Uses localStorage for persistence across sessions with improved error handling
-
-import { serializeMatch, deserializeMatch } from './serialization';
-import { handleOfflineError } from './offlineDiagnostics';
-import { isInningsCompleteByOvers, countLegalDeliveries } from '../utils/inningsCompletion';
 import type { Match, Innings, Ball } from '../backend';
+import { serializeMatch, deserializeMatch } from './serialization';
+import { isInningsCompleteByOvers } from '../utils/inningsCompletion';
 
 const STORAGE_KEY_PREFIX = 'cricket_match_';
-const MATCH_LIST_KEY = 'cricket_matches_list';
 
-export interface LocalMatch extends Match {
-  _localOnly?: boolean;
-}
-
-export class LocalStorageError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
-    super(message);
-    this.name = 'LocalStorageError';
-  }
-}
-
-// Generate a local match ID
-export function generateLocalMatchId(): bigint {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000);
-  return BigInt(`${timestamp}${random}`);
-}
-
-// Save a match to local storage
 export function saveLocalMatch(match: Match, localOnly = false): void {
   try {
-    const key = `${STORAGE_KEY_PREFIX}${match.id.toString()}`;
+    const key = `${STORAGE_KEY_PREFIX}${match.id}`;
     const serialized = serializeMatch(match, localOnly);
     localStorage.setItem(key, serialized);
-
-    // Update match list
-    const matchList = getLocalMatchList();
-    if (!matchList.includes(match.id.toString())) {
-      matchList.push(match.id.toString());
-      localStorage.setItem(MATCH_LIST_KEY, JSON.stringify(matchList));
-    }
-  } catch (error: any) {
-    const userMessage = handleOfflineError('save-match', `saveLocalMatch(${match.id})`, error);
-    throw new LocalStorageError(userMessage, error);
+  } catch (error) {
+    console.error('Failed to save match locally:', error);
+    throw new Error('Failed to save match to device storage');
   }
 }
 
-// Load a match from local storage
-export function loadLocalMatch(matchId: bigint): LocalMatch | null {
+export function loadLocalMatch(matchId: bigint): (Match & { _localOnly?: boolean }) | null {
   try {
-    const key = `${STORAGE_KEY_PREFIX}${matchId.toString()}`;
-    const serialized = localStorage.getItem(key);
-    if (!serialized) return null;
+    const key = `${STORAGE_KEY_PREFIX}${matchId}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    return deserializeMatch(stored);
+  } catch (error) {
+    console.error('Failed to load match locally:', error);
+    return null;
+  }
+}
 
-    try {
-      return deserializeMatch(serialized);
-    } catch (parseError) {
-      const userMessage = handleOfflineError('load-match', `loadLocalMatch(${matchId}) - parse`, parseError);
-      throw new LocalStorageError(userMessage, parseError);
+export function loadAllLocalMatches(): Match[] {
+  const matches: Match[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const match = deserializeMatch(stored);
+          matches.push(match);
+        }
+      }
     }
   } catch (error) {
-    if (error instanceof LocalStorageError) throw error;
-    const userMessage = handleOfflineError('load-match', `loadLocalMatch(${matchId})`, error);
-    throw new LocalStorageError(userMessage, error);
+    console.error('Failed to load all local matches:', error);
   }
-}
-
-// List all local match IDs
-export function getLocalMatchList(): string[] {
-  try {
-    const list = localStorage.getItem(MATCH_LIST_KEY);
-    if (!list) return [];
-
-    try {
-      const parsed = JSON.parse(list);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (parseError) {
-      console.error('Failed to parse match list:', parseError);
-      throw new LocalStorageError(
-        'The saved match list may be corrupted. Try clearing browser data for this site.',
-        parseError
-      );
-    }
-  } catch (error) {
-    if (error instanceof LocalStorageError) throw error;
-    console.error('Failed to load match list:', error);
-    throw new LocalStorageError('Failed to access device storage. Storage may be blocked.', error);
-  }
-}
-
-// Load all local matches with diagnostic info
-export function loadAllLocalMatches(): LocalMatch[] {
-  const matchIds = getLocalMatchList();
-  const matches: LocalMatch[] = [];
-  const errors: string[] = [];
-
-  for (const id of matchIds) {
-    try {
-      const match = loadLocalMatch(BigInt(id));
-      if (match) matches.push(match);
-    } catch (error) {
-      console.error(`Failed to load match ${id}:`, error);
-      errors.push(id);
-    }
-  }
-
-  if (errors.length > 0 && matches.length === 0) {
-    throw new LocalStorageError(
-      `All saved matches (${errors.length}) could not be loaded. The saved data may be corrupted.`
-    );
-  }
-
   return matches;
 }
 
-// Check integrity of local storage and return diagnostic info
+export function deleteLocalMatch(matchId: bigint): void {
+  try {
+    const key = `${STORAGE_KEY_PREFIX}${matchId}`;
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error('Failed to delete match locally:', error);
+    throw new Error('Failed to delete match from device storage');
+  }
+}
+
+export function recordBallLocally(
+  matchId: bigint,
+  inningsIndex: number,
+  ball: Ball
+): Match | null {
+  const match = loadLocalMatch(matchId);
+  if (!match) {
+    throw new Error('Match not found in local storage');
+  }
+
+  if (inningsIndex < 0 || inningsIndex >= match.innings.length) {
+    throw new Error('Invalid innings index');
+  }
+
+  const innings = match.innings[inningsIndex];
+  
+  // Check if innings is already complete
+  if (isInningsCompleteByOvers(innings.balls, innings.overs)) {
+    throw new Error('Cannot record ball: innings is already complete');
+  }
+
+  const updatedBalls = [...innings.balls, ball];
+  const updatedInnings: Innings = {
+    ...innings,
+    balls: updatedBalls,
+    totalRuns: BigInt(updatedBalls.reduce((sum, b) => sum + Number(b.runs), 0)),
+    totalWickets: BigInt(updatedBalls.filter(b => b.isWicket).length),
+  };
+
+  const updatedMatch: Match = {
+    ...match,
+    innings: match.innings.map((inn, idx) =>
+      idx === inningsIndex ? updatedInnings : inn
+    ),
+  };
+
+  saveLocalMatch(updatedMatch, match._localOnly);
+  return updatedMatch;
+}
+
+export function undoLastBall(matchId: bigint): Match | null {
+  const match = loadLocalMatch(matchId);
+  if (!match) {
+    throw new Error('Match not found in local storage');
+  }
+
+  if (match.innings.length === 0) {
+    return null;
+  }
+
+  const currentInningsIndex = match.innings.length - 1;
+  const innings = match.innings[currentInningsIndex];
+
+  if (innings.balls.length === 0) {
+    return null; // No balls to undo
+  }
+
+  const updatedBalls = innings.balls.slice(0, -1);
+  const updatedInnings: Innings = {
+    ...innings,
+    balls: updatedBalls,
+    totalRuns: BigInt(updatedBalls.reduce((sum, b) => sum + Number(b.runs), 0)),
+    totalWickets: BigInt(updatedBalls.filter(b => b.isWicket).length),
+  };
+
+  const updatedMatch: Match = {
+    ...match,
+    innings: match.innings.map((inn, idx) =>
+      idx === currentInningsIndex ? updatedInnings : inn
+    ),
+  };
+
+  saveLocalMatch(updatedMatch, match._localOnly);
+  return updatedMatch;
+}
+
 export function checkLocalMatchIntegrity(): {
   totalMatches: number;
   loadableMatches: number;
   corruptedMatches: string[];
 } {
-  const matchIds = getLocalMatchList();
-  const corruptedMatches: string[] = [];
-  let loadableMatches = 0;
-
-  for (const id of matchIds) {
-    try {
-      const match = loadLocalMatch(BigInt(id));
-      if (match) loadableMatches++;
-    } catch (error) {
-      console.error(`Corrupted match ${id}:`, error);
-      corruptedMatches.push(id);
-    }
-  }
-
-  return {
-    totalMatches: matchIds.length,
-    loadableMatches,
-    corruptedMatches,
+  const result = {
+    totalMatches: 0,
+    loadableMatches: 0,
+    corruptedMatches: [] as string[],
   };
-}
 
-// Delete a local match
-export function deleteLocalMatch(matchId: bigint): void {
   try {
-    const key = `${STORAGE_KEY_PREFIX}${matchId.toString()}`;
-    localStorage.removeItem(key);
-
-    // Update match list
-    const matchList = getLocalMatchList();
-    const updated = matchList.filter((id) => id !== matchId.toString());
-    localStorage.setItem(MATCH_LIST_KEY, JSON.stringify(updated));
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
+        result.totalMatches += 1;
+        try {
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            deserializeMatch(stored);
+            result.loadableMatches += 1;
+          } else {
+            result.corruptedMatches.push(key);
+          }
+        } catch (error) {
+          result.corruptedMatches.push(key);
+        }
+      }
+    }
   } catch (error) {
-    const userMessage = handleOfflineError('delete-match', `deleteLocalMatch(${matchId})`, error);
-    throw new LocalStorageError(userMessage, error);
-  }
-}
-
-// Update match with new innings
-export function updateLocalMatchInnings(matchId: bigint, innings: Innings[]): void {
-  const match = loadLocalMatch(matchId);
-  if (!match) {
-    throw new LocalStorageError(`Match not found in device storage`);
+    console.error('Failed to check local match integrity:', error);
   }
 
-  const updated: Match = {
-    ...match,
-    innings,
-  };
-
-  saveLocalMatch(updated, match._localOnly);
-}
-
-// Add a ball to the current innings
-export function addBallToLocalMatch(matchId: bigint, inningsIndex: number, ball: Ball): void {
-  const match = loadLocalMatch(matchId);
-  if (!match) {
-    throw new LocalStorageError(`Match not found in device storage`);
-  }
-  if (inningsIndex >= match.innings.length) {
-    throw new LocalStorageError(`Invalid innings index for this match`);
-  }
-
-  const innings = [...match.innings];
-  const currentInnings = innings[inningsIndex];
-
-  // Check if innings is already complete due to overs limit
-  if (isInningsCompleteByOvers(currentInnings.balls, currentInnings.overs)) {
-    throw new LocalStorageError('Cannot add ball: innings is already complete (overs limit reached)');
-  }
-
-  // Determine if the delivery is legal
-  const isLegalDelivery = ball.extras ? ball.extras.legalDelivery : true;
-
-  // Update ballsInCurrentOver based on legality
-  let ballsInCurrentOver = Number(currentInnings.ballsInCurrentOver);
-  if (isLegalDelivery) {
-    ballsInCurrentOver = (ballsInCurrentOver + 1) % 6;
-  }
-
-  const updatedInnings: Innings = {
-    ...currentInnings,
-    balls: [...currentInnings.balls, ball],
-    totalRuns: currentInnings.totalRuns + ball.runs,
-    totalWickets: ball.isWicket ? currentInnings.totalWickets + BigInt(1) : currentInnings.totalWickets,
-    ballsInCurrentOver: BigInt(ballsInCurrentOver),
-  };
-
-  innings[inningsIndex] = updatedInnings;
-
-  const updated: Match = {
-    ...match,
-    innings,
-  };
-
-  saveLocalMatch(updated, match._localOnly);
-}
-
-// Clear all local matches (for testing or reset)
-export function clearAllLocalMatches(): void {
-  const matchIds = getLocalMatchList();
-  matchIds.forEach((id) => {
-    const key = `${STORAGE_KEY_PREFIX}${id}`;
-    localStorage.removeItem(key);
-  });
-  localStorage.removeItem(MATCH_LIST_KEY);
+  return result;
 }

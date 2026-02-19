@@ -1,68 +1,75 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add chase target context, auto-win detection, and winning details",
+  "title": "Fix Undo functionality and improve over-by-over reporting on Live Scoring screen",
   "requirements": [
     {
-      "id": "REQ-46",
-      "summary": "Display second-innings chase target and remaining runs on Live Scoring screen",
+      "id": "REQ-71",
+      "summary": "Add visible and functional 'Undo last ball' button on Live Scoring page that removes the most recently recorded ball and updates all scoreboard values",
       "acceptanceCriteria": [
-        "When a match has 2 innings and the current innings is the second innings, LiveScoringPage displays a clearly labeled target (e.g., \"Target: 151\") computed as (first innings total runs + 1).",
-        "When a match is in the second innings, LiveScoringPage displays a clearly labeled remaining requirement (e.g., \"Need 37 more runs to win\").",
-        "All new user-facing labels/messages are in English."
+        "An 'Undo last ball' button is visible on the Live Scoring screen at all times during active scoring",
+        "Clicking 'Undo' removes the last recorded ball from the innings ball history",
+        "All scoreboard values (total runs, wickets, overs, balls, striker runs, non-striker runs, bowler stats) update immediately after undo",
+        "Undo works correctly for both local-only matches and backend-synced matches",
+        "The button is disabled when there are no balls to undo (innings ball history is empty)",
+        "User sees a success toast message after successfully undoing a ball"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/chase.ts",
-          "operation": "create",
-          "description": "Add shared chase helpers to compute first-innings total, target (first innings runs + 1), and remaining runs for the current innings; keep logic reusable by LiveScoringPage and MatchSummaryPage."
+          "path": "frontend/src/offline/localMatchStore.ts",
+          "operation": "modify",
+          "description": "Add an undoLastBall function that removes the most recent ball from the current innings ball history in local storage, then saves the updated match state. The function should return the updated match or null if no balls exist to undo. Handle edge cases where innings or balls array is empty."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a new useUndoLastBall mutation hook that calls localMatchStore.undoLastBall for local matches. For backend-synced matches, the mutation should update local storage first (optimistic update), then invalidate match queries to trigger a refetch. Include error handling and success toast notifications."
         },
         {
           "path": "frontend/src/pages/LiveScoringPage.tsx",
           "operation": "modify",
-          "description": "Compute chase context when current innings is the second innings (based on match.innings) using the new chase utility, and render clearly labeled English UI for \"Target\" and \"Need X more runs to win\" within the existing header/score section."
+          "description": "Add an 'Undo Last Ball' button to the live scoring UI positioned near the scoring controls. Wire it to the useUndoLastBall mutation hook. Disable the button when there are no balls in the current innings (check currentInnings.balls.length === 0). Show loading state during mutation. Ensure the button is visible and accessible on mobile screens."
         }
       ]
     },
     {
-      "id": "REQ-47",
-      "summary": "Auto-detect successful chase in second innings, block further scoring, toast success, and navigate to Match Summary",
+      "id": "REQ-72",
+      "summary": "Fix Live Scoring page state reload behavior so that navigating away and returning preserves striker, non-striker, and bowler selections without requiring re-selection",
       "acceptanceCriteria": [
-        "During second innings scoring, as soon as the second innings total runs becomes >= target, the app shows an English success toast indicating the match is won and by which team.",
-        "After the chase is achieved, the Live Scoring controls no longer allow recording additional balls for that match (either disabled or blocked with an English message).",
-        "After the chase is achieved, the app navigates to the Match Summary screen for the match (without getting stuck on the Live Scoring page)."
+        "After navigating from Live Scoring to Match Stats and back, the striker and non-striker remain selected without requiring re-selection",
+        "The bowler selection is also preserved across navigation",
+        "All scoring controls (run buttons, wicket, extras) remain enabled and functional after returning",
+        "The ball history and scoreboard values remain accurate after navigation round-trip",
+        "No 'Please select striker and non-striker' blocking message appears when returning to a match that already has batters selected"
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LiveScoringPage.tsx",
           "operation": "modify",
-          "description": "Add chase-achieved detection for second innings: (1) after each recorded ball (and also on load/refresh), if totalRuns >= target then show an English success toast naming the chasing team; (2) prevent further ball recording by extending the existing scoringDisabled/guards and showing an English blocking message when an action is attempted; (3) navigate to `/match/${matchId}/summary` promptly (e.g., after a short delay) without looping. Ensure this does not interfere with existing overs-completion flow."
-        },
-        {
-          "path": "frontend/src/utils/chase.ts",
-          "operation": "modify",
-          "description": "Extend chase helpers (if needed) with a small, deterministic function to decide whether the chase is achieved given second-innings runs and target, so LiveScoringPage can consistently block scoring and trigger navigation."
+          "description": "Review and fix the state management for striker, non-striker, and bowler selections. Currently, these selections are stored in local component state and reset on unmount. Modify the logic to persist these selections in the match data structure (either in a temporary field or derive them from the most recent ball). When the component mounts, check if the innings has balls and automatically restore the last known striker, non-striker, and bowler from the most recent ball instead of clearing selections. Remove or adjust any useEffect hooks that unnecessarily reset these values on mount. Ensure the 'Please select striker and non-striker' guard only appears when the innings truly has no batters selected (empty balls array and no stored selections)."
         }
       ]
     },
     {
-      "id": "REQ-48",
-      "summary": "Show target and human-readable match result line with correct win margin on Match Summary",
+      "id": "REQ-73",
+      "summary": "Replace the existing 'Last Over' summary with a comprehensive over-by-over breakdown displaying runs scored in each individual completed over throughout the current innings",
       "acceptanceCriteria": [
-        "MatchSummaryPage displays the target (first innings runs + 1) when two innings exist.",
-        "MatchSummaryPage displays an English result sentence matching the outcome: (a) if Team 2 chases successfully: \"<Team2> won by <wickets remaining> wickets\"; (b) if Team 1 defends successfully: \"<Team1> won by <run margin> runs\"; (c) if equal scores: \"Match tied\".",
-        "The winner heading on MatchSummaryPage remains correct for win/lose/tie outcomes and is consistent with the new result sentence."
+        "The Live Scoring screen displays a list/grid showing runs scored in each completed over (Over 1: X runs, Over 2: Y runs, etc.)",
+        "The breakdown updates immediately after each over is completed (6 legal deliveries)",
+        "The display shows overs in chronological order (1st, 2nd, 3rd...) so the scorer can see scoring progression",
+        "The component uses the existing computeOverByOverBreakdown utility to compute over data",
+        "The over-by-over breakdown is visible and scrollable on mobile screens without layout overflow"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/MatchSummaryPage.tsx",
+          "path": "frontend/src/pages/LiveScoringPage.tsx",
           "operation": "modify",
-          "description": "Use chase utilities to compute and display an English \"Target: <n>\" line when two innings exist; compute and render a single English result sentence using: (a) successful chase => \"<Team2> won by <wickets remaining> wickets\" where wickets remaining is based on battingTeam.players.length - 1 - wicketsLost; (b) defend => \"<Team1> won by <run margin> runs\" where run margin is firstRuns - secondRuns; (c) equal => \"Match tied\". Update the existing winner heading logic to remain correct and consistent with the result sentence."
+          "description": "Replace the existing 'Last Over' display with the OverByOverBreakdown component. Import and render the OverByOverBreakdown component from frontend/src/components/live/OverByOverBreakdown.tsx, passing it the current innings data. Position it in a scrollable section that works on mobile devices. Remove or comment out any references to the old 'Last Over' summary UI."
         },
         {
-          "path": "frontend/src/utils/chase.ts",
+          "path": "frontend/src/components/live/OverByOverBreakdown.tsx",
           "operation": "modify",
-          "description": "Add helper(s) to compute wickets remaining (based on squad size and wickets lost) and to build the English result sentence for win-by-wickets / win-by-runs / tie, so MatchSummaryPage can stay simple and consistent with LiveScoringPage chase detection."
+          "description": "Review the existing OverByOverBreakdown component implementation. Ensure it correctly uses the computeOverByOverBreakdown utility from frontend/src/utils/overByOverBreakdown.ts to generate the over-by-over data. Verify the component displays overs in chronological order (1st, 2nd, 3rd, etc.) with runs per over. Ensure the component has proper mobile-friendly styling with overflow scrolling if needed. Add appropriate loading/empty states if no completed overs exist yet."
         }
       ]
     }

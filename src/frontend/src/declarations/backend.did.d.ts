@@ -25,6 +25,19 @@ export interface BallExtras {
   'legByes' : bigint,
   'legalDelivery' : boolean,
 }
+export interface BattingStats {
+  'fours' : bigint,
+  'outs' : bigint,
+  'runs' : bigint,
+  'sixes' : bigint,
+  'ballsFaced' : bigint,
+}
+export interface BowlingStats {
+  'maidens' : bigint,
+  'wickets' : bigint,
+  'ballsBowled' : bigint,
+  'runsConceded' : bigint,
+}
 export interface Innings {
   'overs' : [] | [bigint],
   'totalWickets' : bigint,
@@ -42,16 +55,30 @@ export interface Match {
   'toss' : [] | [TossInfo],
   'innings' : Array<Innings>,
 }
+export interface PersistentPlayerStats {
+  'bowlingStats' : BowlingStats,
+  'battingStats' : BattingStats,
+  'lastUpdated' : Time,
+  'playerName' : string,
+  'matchesPlayed' : bigint,
+}
 export interface Player {
   'id' : bigint,
   'name' : string,
   'battingOrderPosition' : [] | [bigint],
+}
+export interface SavedTeam {
+  'owner' : Principal,
+  'createdAt' : Time,
+  'team' : Team,
+  'updatedAt' : Time,
 }
 export interface Team {
   'id' : bigint,
   'name' : string,
   'players' : Array<Player>,
 }
+export type Time = bigint;
 export type TossDecision = { 'bat' : null } |
   { 'bowl' : null };
 export interface TossInfo { 'decision' : TossDecision, 'winnerTeamId' : bigint }
@@ -67,13 +94,23 @@ export interface _SERVICE {
     bigint
   >,
   'deleteMatch' : ActorMethod<[bigint], undefined>,
+  'getCallerSavedTeam' : ActorMethod<[], [] | [SavedTeam]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getMatch' : ActorMethod<[bigint], [] | [Match]>,
+  'getPlayerStats' : ActorMethod<[string], [] | [PersistentPlayerStats]>,
+  'getSavedTeamOf' : ActorMethod<[Principal], [] | [SavedTeam]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'listAllPlayerStats' : ActorMethod<[], Array<PersistentPlayerStats>>,
   'listMatches' : ActorMethod<[], Array<Match>>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'saveTeam' : ActorMethod<[Team], undefined>,
+  'startSecondInnings' : ActorMethod<[bigint, Innings], undefined>,
+  'updatePlayerStats' : ActorMethod<
+    [string, BattingStats, BowlingStats],
+    undefined
+  >,
   'updateTossInfo' : ActorMethod<[bigint, TossInfo], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

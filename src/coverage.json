@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T18:21:48.761Z",
+  "generatedAt": "2026-02-19T11:47:13.552Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,42 +11,41 @@
     "implemented": 3,
     "items": [
       {
-        "id": "REQ-46",
-        "summary": "Show 2nd-innings chase context on the Live Scoring screen by computing and displaying the target from the 1st innings total (target = first innings runs + 1), along with remaining runs needed.",
+        "id": "REQ-71",
+        "summary": "Add a visible and functional 'Undo last ball' button on the Live Scoring page that removes the most recently recorded ball from the current innings ball history and updates all displayed scoreboard values (runs, wickets, overs, balls) accordingly, with support for both local-only matches and backend-synced matches.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/chase.ts",
+          "frontend/src/offline/localMatchStore.ts",
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/pages/LiveScoringPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/utils/chase.ts",
+          "frontend/src/offline/localMatchStore.ts",
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/pages/LiveScoringPage.tsx"
         ]
       },
       {
-        "id": "REQ-47",
-        "summary": "Automatically detect a successful chase in the 2nd innings and immediately mark the match as won in the UI flow by preventing further ball recording and taking the scorer to the Match Summary screen when the 2nd innings total reaches or exceeds the target.",
+        "id": "REQ-72",
+        "summary": "Fix the Live Scoring page state reload behavior so that navigating away to Match Stats (or any other page) and then returning to Live Scoring does not reset the striker and non-striker selections or require re-selecting batsmen, preserving the current batting state across navigation.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/LiveScoringPage.tsx",
-          "frontend/src/utils/chase.ts"
+          "frontend/src/pages/LiveScoringPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/LiveScoringPage.tsx",
-          "frontend/src/utils/chase.ts"
+          "frontend/src/pages/LiveScoringPage.tsx"
         ]
       },
       {
-        "id": "REQ-48",
-        "summary": "Add winning details to the Match Summary screen, including the target and a human-readable result line that includes win margin (by runs, wickets, or tie).",
+        "id": "REQ-73",
+        "summary": "Replace the existing 'Last Over' summary on the Live Scoring screen with a comprehensive over-by-over breakdown that displays runs scored in each individual completed over (1st over, 2nd over, 3rd over, etc.) throughout the current innings, not just the most recent over, so the scorer can see the full scoring progression.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/MatchSummaryPage.tsx",
-          "frontend/src/utils/chase.ts"
+          "frontend/src/pages/LiveScoringPage.tsx",
+          "frontend/src/components/live/OverByOverBreakdown.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/MatchSummaryPage.tsx",
-          "frontend/src/utils/chase.ts"
+          "frontend/src/pages/LiveScoringPage.tsx"
         ]
       }
     ]
@@ -56,9 +55,12 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/offline/localMatchStore.ts",
     "frontend/src/pages/LiveScoringPage.tsx",
-    "frontend/src/pages/MatchSummaryPage.tsx",
-    "frontend/src/utils/chase.ts",
+    "frontend/src/pages/MatchSetupPage.tsx",
+    "frontend/src/pages/MatchStatsPage.tsx",
+    "frontend/src/pages/MatchesDashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

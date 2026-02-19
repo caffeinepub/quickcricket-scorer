@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-show-2nd-innings-chase-context-on-the-live-scoring-screen-by-computing-and-displaying-the-target-from-the-1st-innings-total-target-first-innings-runs-1-along-with-remaining-runs-needed",
-      "featureTitle": "Show 2nd-innings chase context on the Live Scoring screen by computing and displaying the target from the 1st innings total (target = first innings runs + 1), along with remaining runs needed.",
+      "featureId": "feature-add-a-visible-and-functional-undo-last-ball-button-on-the-live-scoring-page-that-removes-the-most-recently-recorded-ball-from-the-current-innings-ball-history-and-updates-all-displayed-scoreboard-values-runs-wickets-overs-balls-accordingly-with-support-for-both-local-only-matches-and-backend-synced-matches",
+      "featureTitle": "Add a visible and functional 'Undo last ball' button on the Live Scoring page that removes the most recently recorded ball from the current innings ball history and updates all displayed scoreboard values (runs, wickets, overs, balls) accordingly, with support for both local-only matches and backend-synced matches.",
       "files": [
-        "frontend/src/pages/LiveScoringPage.tsx",
-        "frontend/src/utils/chase.ts"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/offline/localMatchStore.ts",
+        "frontend/src/pages/LiveScoringPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -17,16 +18,15 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-46"
+        "REQ-71"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-automatically-detect-a-successful-chase-in-the-2nd-innings-and-immediately-mark-the-match-as-won-in-the-ui-flow-by-preventing-further-ball-recording-and-taking-the-scorer-to-the-match-summary-screen-when-the-2nd-innings-total-reaches-or-exceeds-the-target",
-      "featureTitle": "Automatically detect a successful chase in the 2nd innings and immediately mark the match as won in the UI flow by preventing further ball recording and taking the scorer to the Match Summary screen when the 2nd innings total reaches or exceeds the target.",
+      "featureId": "feature-fix-the-live-scoring-page-state-reload-behavior-so-that-navigating-away-to-match-stats-or-any-other-page-and-then-returning-to-live-scoring-does-not-reset-the-striker-and-non-striker-selections-or-require-re-selecting-batsmen-preserving-the-current-batting-state-across-navigation",
+      "featureTitle": "Fix the Live Scoring page state reload behavior so that navigating away to Match Stats (or any other page) and then returning to Live Scoring does not reset the striker and non-striker selections or require re-selecting batsmen, preserving the current batting state across navigation.",
       "files": [
-        "frontend/src/pages/LiveScoringPage.tsx",
-        "frontend/src/utils/chase.ts"
+        "frontend/src/pages/LiveScoringPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -37,16 +37,15 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-47"
+        "REQ-72"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-winning-details-to-the-match-summary-screen-including-the-target-and-a-human-readable-result-line-that-includes-win-margin-by-runs-wickets-or-tie",
-      "featureTitle": "Add winning details to the Match Summary screen, including the target and a human-readable result line that includes win margin (by runs, wickets, or tie).",
+      "featureId": "feature-replace-the-existing-last-over-summary-on-the-live-scoring-screen-with-a-comprehensive-over-by-over-breakdown-that-displays-runs-scored-in-each-individual-completed-over-1st-over-2nd-over-3rd-over-etc-throughout-the-current-innings-not-just-the-most-recent-over-so-the-scorer-can-see-the-full-scoring-progression",
+      "featureTitle": "Replace the existing 'Last Over' summary on the Live Scoring screen with a comprehensive over-by-over breakdown that displays runs scored in each individual completed over (1st over, 2nd over, 3rd over, etc.) throughout the current innings, not just the most recent over, so the scorer can see the full scoring progression.",
       "files": [
-        "frontend/src/pages/MatchSummaryPage.tsx",
-        "frontend/src/utils/chase.ts"
+        "frontend/src/pages/LiveScoringPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -57,7 +56,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-48"
+        "REQ-73"
       ],
       "confidence": "high"
     }

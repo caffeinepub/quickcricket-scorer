@@ -1,198 +1,324 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
-import { useGetMatch, useRecordBall } from '../hooks/useQueries';
+import { useEffect, useState } from 'react';
+import { useGetMatch, useRecordBall, useUndoLastBall } from '../hooks/useQueries';
 import { useConnectivity } from '../hooks/useConnectivity';
 import { useUnsavedOfflineChangesGuard } from '../hooks/useUnsavedOfflineChangesGuard';
 import { parseMatchId } from '../utils/parseMatchId';
-import { formatTossInfo } from '../utils/formatTossInfo';
-import { getEligibleBatters, getEligibleNextBatters } from '../utils/inningsEligibility';
-import { isInningsCompleteByOvers, getCurrentOvers } from '../utils/inningsCompletion';
-import { getChaseTarget, getRemainingRuns, isChaseAchieved } from '../utils/chase';
+import { loadLocalMatch } from '../offline/localMatchStore';
+import { ensureMatchInitialized } from '../utils/ensureMatchInitialized';
+import type { Match, Player, Ball, BallExtras } from '../backend';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { MobileSafeDialogContent } from '@/components/mobile/MobileSafeDialogContent';
-import { Dialog } from '@/components/ui/dialog';
-import { Select, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MobileSafeSelectContent } from '@/components/mobile/MobileSafeSelectContent';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Undo, AlertCircle, BarChart3, Target } from 'lucide-react';
-import { toast } from 'sonner';
-import { BatterRoleSelector } from '../components/live/BatterRoleSelector';
-import { NextBatterDialog as NextBatterSelectionDialog } from '../components/live/NextBatterDialog';
+import { Select, SelectTrigger, SelectValue, SelectItem } from '@/components/ui/select';
+import { MobileSafeSelectContent } from '@/components/mobile/MobileSafeSelectContent';
+import { AlertCircle, ArrowLeft, BarChart3, Undo2 } from 'lucide-react';
+import BatterRoleSelector from '../components/live/BatterRoleSelector';
+import { NextBatterDialog } from '../components/live/NextBatterDialog';
 import { NextBowlerDialog } from '../components/live/NextBowlerDialog';
-import type { Player, Ball, BallExtras } from '../backend';
+import { OverByOverBreakdown } from '../components/live/OverByOverBreakdown';
+import { getEligibleBatters, getEligibleNextBatters } from '../utils/inningsEligibility';
+import { isInningsCompleteByOvers, getCurrentOvers } from '../utils/inningsCompletion';
+import { getLastOverViewModel } from '../utils/lastOver';
+import { getChaseTarget, getRemainingRuns, isChaseAchieved } from '../utils/chase';
+import { formatTossInfo } from '../utils/formatTossInfo';
+import { toast } from 'sonner';
 
 export default function LiveScoringPage() {
-  const { matchId: rawMatchId } = useParams({ from: '/match/$matchId' });
+  const { matchId: matchIdParam } = useParams({ from: '/match/$matchId' });
   const navigate = useNavigate();
   const { isOffline } = useConnectivity();
 
-  // Parse and validate matchId
-  const parseResult = parseMatchId(rawMatchId);
-  const matchId = parseResult.success ? parseResult.value : BigInt(0);
-  
-  const { data: match, isLoading, error } = useGetMatch(matchId);
-  const recordBall = useRecordBall();
+  const parsedId = parseMatchId(matchIdParam);
+  const matchId = parsedId.success ? parsedId.value : null;
 
+  const { data: backendMatch, isLoading: backendLoading, error: backendError } = useGetMatch(matchId || 0n);
+  const recordBall = useRecordBall();
+  const undoLastBallMutation = useUndoLastBall();
+
+  const [localMatch, setLocalMatch] = useState<Match | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Scoring state
   const [striker, setStriker] = useState<Player | null>(null);
   const [nonStriker, setNonStriker] = useState<Player | null>(null);
-  const [currentBowler, setCurrentBowler] = useState<Player | null>(null);
+  const [bowler, setBowler] = useState<Player | null>(null);
   const [ballHistory, setBallHistory] = useState<Ball[]>([]);
-  const [showWicketDialog, setShowWicketDialog] = useState(false);
-  const [showBowlerDialog, setShowBowlerDialog] = useState(false);
-  const [showExtrasDialog, setShowExtrasDialog] = useState(false);
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+
+  // Dialog state
   const [showNextBatterDialog, setShowNextBatterDialog] = useState(false);
+  const [showNextBowlerDialog, setShowNextBowlerDialog] = useState(false);
+  const [showExtrasDialog, setShowExtrasDialog] = useState(false);
   const [selectedNextBatter, setSelectedNextBatter] = useState<Player | null>(null);
   const [selectedNextBowler, setSelectedNextBowler] = useState<Player | null>(null);
+
+  // Extras state
   const [extrasType, setExtrasType] = useState<'wide' | 'noball' | 'byes' | 'legbyes'>('wide');
   const [extrasRuns, setExtrasRuns] = useState<string>('1');
-  const [hasLocalChanges, setHasLocalChanges] = useState(false);
-  const [inningsEndedToastShown, setInningsEndedToastShown] = useState(false);
-  const [chaseWonToastShown, setChaseWonToastShown] = useState(false);
 
-  const currentInnings = match?.innings[match.innings.length - 1];
-  const currentInningsIndex = match ? match.innings.length - 1 : 0;
-  const isSecondInnings = match && match.innings.length === 2 && currentInningsIndex === 1;
+  // Load local match on mount and when matchId changes
+  useEffect(() => {
+    if (!matchId) return;
+    try {
+      const stored = loadLocalMatch(matchId);
+      if (stored) {
+        const initialized = ensureMatchInitialized(stored);
+        setLocalMatch(initialized);
+      }
+    } catch (err) {
+      console.error('Failed to load local match:', err);
+      setLoadError('Failed to load match from local storage. Please try refreshing the page.');
+    }
+  }, [matchId]);
+
+  // Sync backend match to local storage when it loads
+  useEffect(() => {
+    if (backendMatch && matchId) {
+      try {
+        const initialized = ensureMatchInitialized(backendMatch);
+        setLocalMatch(initialized);
+      } catch (err) {
+        console.error('Failed to sync backend match:', err);
+      }
+    }
+  }, [backendMatch, matchId]);
+
+  const match = localMatch || backendMatch;
+
+  // Load ball history and restore player selections from current innings
+  useEffect(() => {
+    if (match && match.innings.length > 0) {
+      const currentInnings = match.innings[match.innings.length - 1];
+      setBallHistory(currentInnings.balls);
+
+      // Restore current bowler from last ball if not already set
+      if (currentInnings.balls.length > 0 && !bowler) {
+        const lastBall = currentInnings.balls[currentInnings.balls.length - 1];
+        setBowler(lastBall.bowler);
+      }
+
+      // Restore striker and non-striker from ball history
+      // Find the last two unique batsmen who are not out
+      if (currentInnings.balls.length > 0 && (!striker || !nonStriker)) {
+        const outBatterIds = new Set<bigint>();
+        currentInnings.balls.forEach(ball => {
+          if (ball.isWicket) {
+            outBatterIds.add(ball.batsman.id);
+          }
+        });
+
+        // Find last two batsmen who are not out
+        const recentBatsmen: Player[] = [];
+        for (let i = currentInnings.balls.length - 1; i >= 0 && recentBatsmen.length < 2; i--) {
+          const ball = currentInnings.balls[i];
+          if (!outBatterIds.has(ball.batsman.id)) {
+            const alreadyAdded = recentBatsmen.some(b => b.id === ball.batsman.id);
+            if (!alreadyAdded) {
+              recentBatsmen.push(ball.batsman);
+            }
+          }
+        }
+
+        // Set striker and non-striker if we found them and they're not already set
+        if (recentBatsmen.length >= 1 && !striker) {
+          setStriker(recentBatsmen[0]);
+        }
+        if (recentBatsmen.length >= 2 && !nonStriker) {
+          setNonStriker(recentBatsmen[1]);
+        }
+      }
+    }
+  }, [match, bowler, striker, nonStriker]);
+
+  // Guard against navigation with unsaved offline changes
+  useUnsavedOfflineChangesGuard(hasLocalChanges, isOffline);
+
+  // Guard: Invalid match ID
+  if (!parsedId.success) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Invalid match ID. Please return to the dashboard and select a valid match.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Guard: Loading state
+  if (backendLoading && !localMatch) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <div className="text-center py-8">Loading match data...</div>
+      </div>
+    );
+  }
+
+  // Guard: Load error
+  if (loadError) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Guard: Backend error (but allow if we have local match)
+  if (backendError && !localMatch) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load match from backend. Error: {backendError.message}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Guard: No match data
+  if (!match) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Match not found. Please return to the dashboard and try again.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Guard: No innings
+  if (!match.innings || match.innings.length === 0) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            This match has no innings initialized. Please return to the dashboard and recreate the match with proper toss information.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  const currentInnings = match.innings[match.innings.length - 1];
+  const currentInningsIndex = match.innings.length - 1;
+  const isSecondInnings = match.innings.length === 2 && currentInningsIndex === 1;
+
+  // Guard: Incomplete innings data
+  if (!currentInnings.battingTeam || !currentInnings.bowlingTeam) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Innings data is incomplete. Please return to the dashboard and recreate the match.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Guard: Empty rosters
+  const battingPlayers = currentInnings.battingTeam.players || [];
+  const bowlingPlayers = currentInnings.bowlingTeam.players || [];
+
+  if (battingPlayers.length === 0 || bowlingPlayers.length === 0) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Team rosters are empty. Please return to the dashboard and ensure both teams have players before starting the match.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/' })} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Calculate eligible batters
+  const eligibleForStriker = getEligibleBatters(
+    battingPlayers,
+    ballHistory,
+    nonStriker?.id
+  );
+  const eligibleForNonStriker = getEligibleBatters(
+    battingPlayers,
+    ballHistory,
+    striker?.id
+  );
+  const eligibleNextBatters = nonStriker
+    ? getEligibleNextBatters(battingPlayers, ballHistory, nonStriker.id)
+    : [];
+
+  // Calculate overs and innings completion
+  const { overs, ballsInOver } = getCurrentOvers(ballHistory);
+  const totalRuns = ballHistory.reduce((sum, b) => sum + Number(b.runs), 0);
+  const totalWickets = ballHistory.filter((b) => b.isWicket).length;
+  const isInningsComplete = isInningsCompleteByOvers(ballHistory, currentInnings.overs);
 
   // Chase context for second innings
   const chaseTarget = match && isSecondInnings ? getChaseTarget(match) : null;
   const remainingRuns = match && isSecondInnings ? getRemainingRuns(match) : null;
   const chaseAchieved = match && isSecondInnings ? isChaseAchieved(match) : false;
 
-  // Guard against navigation with unsaved offline changes
-  useUnsavedOfflineChangesGuard(hasLocalChanges, isOffline);
-
-  // Load ball history from current innings
-  useEffect(() => {
-    if (currentInnings) {
-      setBallHistory(currentInnings.balls);
-      
-      // Restore current bowler from last ball if available
-      if (currentInnings.balls.length > 0 && !currentBowler) {
-        const lastBall = currentInnings.balls[currentInnings.balls.length - 1];
-        setCurrentBowler(lastBall.bowler);
-      }
-    }
-  }, [currentInnings, currentBowler]);
-
-  // Calculate overs using legal deliveries only
-  const { overs: totalOvers, ballsInOver } = getCurrentOvers(ballHistory);
-
-  const totalRuns = ballHistory.reduce((sum, b) => sum + Number(b.runs), 0);
-  const totalWickets = ballHistory.filter((b) => b.isWicket).length;
-
-  const oversLimit = currentInnings?.overs;
-  const isInningsComplete = isInningsCompleteByOvers(ballHistory, oversLimit);
-
-  // Auto-navigate when innings completes due to overs limit
-  useEffect(() => {
-    if (isInningsComplete && !inningsEndedToastShown && parseResult.success) {
-      setInningsEndedToastShown(true);
-      toast.success('Innings ended: overs completed.');
-      setTimeout(() => {
-        try {
-          navigate({ to: `/match/${matchId}/innings-summary` });
-        } catch (navError) {
-          console.error('Navigation to innings summary failed:', navError);
-          toast.error('Failed to navigate to innings summary');
-        }
-      }, 500);
-    }
-  }, [isInningsComplete, inningsEndedToastShown, matchId, navigate, parseResult.success]);
-
-  // Auto-detect chase achieved and navigate to match summary
-  useEffect(() => {
-    if (chaseAchieved && !chaseWonToastShown && parseResult.success && match && currentInnings) {
-      setChaseWonToastShown(true);
-      toast.success(`${currentInnings.battingTeam.name} won the match!`);
-      setTimeout(() => {
-        try {
-          navigate({ to: `/match/${matchId}/summary` });
-        } catch (navError) {
-          console.error('Navigation to match summary failed:', navError);
-          toast.error('Failed to navigate to match summary');
-        }
-      }, 1500);
-    }
-  }, [chaseAchieved, chaseWonToastShown, matchId, navigate, parseResult.success, match, currentInnings]);
-
-  // Handle invalid matchId
-  if (!parseResult.success) {
-    return (
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="p-8 sm:p-12 text-center">
-          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-destructive mx-auto mb-4" />
-          <h3 className="text-lg sm:text-xl font-semibold mb-2">Invalid Match ID</h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-6">{parseResult.error}</p>
-          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLoading) {
-    return <div className="text-center py-12">Loading match...</div>;
-  }
-
-  if (error) {
-    console.error('Match loading error:', error);
-    return (
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="p-8 sm:p-12 text-center">
-          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-destructive mx-auto mb-4" />
-          <h3 className="text-lg sm:text-xl font-semibold mb-2">Could Not Load Match</h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-6">
-            {error instanceof Error ? error.message : 'Failed to load match data from this device'}
-          </p>
-          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!match || !currentInnings) {
-    console.error('Match or innings not found:', { match, currentInnings });
-    return (
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="p-8 sm:p-12 text-center">
-          <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg sm:text-xl font-semibold mb-2">Match Not Ready</h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-6">
-            Unable to load match data from this device. The match may not have been created yet or the saved data may be corrupted.
-          </p>
-          <Button onClick={() => navigate({ to: '/' })}>Back to Dashboard</Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Last over view model
+  const lastOverData = getLastOverViewModel(ballHistory);
 
   // Check if selections are complete
-  const selectionsComplete = !!striker && !!nonStriker && !!currentBowler;
-  
-  // Get eligible batters for striker/non-striker selection
-  const eligibleForStriker = getEligibleBatters(
-    currentInnings.battingTeam.players,
-    ballHistory,
-    nonStriker?.id
-  );
-  const eligibleForNonStriker = getEligibleBatters(
-    currentInnings.battingTeam.players,
-    ballHistory,
-    striker?.id
-  );
+  const selectionsComplete = !!striker && !!nonStriker && !!bowler;
+  const scoringDisabled = isInningsComplete || chaseAchieved || !selectionsComplete || showNextBatterDialog || showNextBowlerDialog;
 
-  // Get eligible next batters (excludes non-striker and out batters)
-  const eligibleNextBatters = nonStriker
-    ? getEligibleNextBatters(currentInnings.battingTeam.players, ballHistory, nonStriker.id)
-    : [];
-
-  // Disable scoring if innings complete, chase achieved, selections incomplete, or dialogs open
-  const scoringDisabled = isInningsComplete || chaseAchieved || !selectionsComplete || showNextBatterDialog || showBowlerDialog;
+  const handleUndoLastBall = () => {
+    if (!matchId || ballHistory.length === 0) return;
+    undoLastBallMutation.mutate({ matchId });
+  };
 
   const recordBallAction = async (ball: Ball) => {
+    if (!matchId) return;
+
     // Prevent recording if innings is already complete or chase achieved
     if (isInningsComplete) {
       toast.error('Cannot record ball: innings is complete');
@@ -209,7 +335,7 @@ export default function LiveScoringPage() {
         inningsIndex: currentInningsIndex,
         ball,
       });
-      
+
       const updatedHistory = [...ballHistory, ball];
       setBallHistory(updatedHistory);
       setHasLocalChanges(isOffline);
@@ -231,7 +357,26 @@ export default function LiveScoringPage() {
           setStriker(nonStriker);
           setNonStriker(temp);
           setSelectedNextBowler(null);
-          setShowBowlerDialog(true);
+          setShowNextBowlerDialog(true);
+        }
+      }
+
+      // Check if innings is now complete
+      if (isInningsCompleteByOvers(updatedHistory, currentInnings.overs)) {
+        toast.success('Innings ended: overs completed.');
+        setTimeout(() => {
+          navigate({ to: `/match/${matchId}/innings-summary` });
+        }, 500);
+      }
+
+      // Check if chase is achieved
+      if (isSecondInnings) {
+        const newTotalRuns = updatedHistory.reduce((sum, b) => sum + Number(b.runs), 0);
+        if (chaseTarget && newTotalRuns > chaseTarget) {
+          toast.success(`${currentInnings.battingTeam.name} won the match!`);
+          setTimeout(() => {
+            navigate({ to: `/match/${matchId}/summary` });
+          }, 1500);
         }
       }
     } catch (error) {
@@ -242,15 +387,15 @@ export default function LiveScoringPage() {
   };
 
   const handleRunsClick = (runs: number) => {
-    if (!striker || !currentBowler) {
+    if (!striker || !bowler) {
       toast.error('Please select striker and bowler first');
       return;
     }
-    
+
     const ball: Ball = {
       ballNumber: BigInt(ballHistory.length + 1),
       batsman: striker,
-      bowler: currentBowler,
+      bowler: bowler,
       runs: BigInt(runs),
       isWicket: false,
       extras: undefined,
@@ -259,64 +404,44 @@ export default function LiveScoringPage() {
   };
 
   const handleWicket = () => {
-    if (!striker || !currentBowler) {
+    if (!striker || !bowler) {
       toast.error('Please select striker and bowler first');
       return;
     }
-    setShowWicketDialog(true);
-  };
-
-  const confirmWicket = async () => {
-    if (!striker || !currentBowler) return;
 
     const ball: Ball = {
       ballNumber: BigInt(ballHistory.length + 1),
       batsman: striker,
-      bowler: currentBowler,
+      bowler: bowler,
       runs: BigInt(0),
       isWicket: true,
       extras: undefined,
     };
-    
-    try {
-      await recordBall.mutateAsync({
-        matchId,
-        inningsIndex: currentInningsIndex,
-        ball,
-      });
-      
-      const updatedHistory = [...ballHistory, ball];
-      setBallHistory(updatedHistory);
-      setHasLocalChanges(isOffline);
-      setShowWicketDialog(false);
 
+    recordBallAction(ball).then(() => {
       // Clear striker
       setStriker(null);
       setSelectedNextBatter(null);
-      
+
       // Check if there are eligible batters
+      const updatedHistory = [...ballHistory, ball];
       const eligible = nonStriker
-        ? getEligibleNextBatters(currentInnings.battingTeam.players, updatedHistory, nonStriker.id)
+        ? getEligibleNextBatters(battingPlayers, updatedHistory, nonStriker.id)
         : [];
-      
+
       if (eligible.length === 0) {
-        // All out - automatically end innings
+        // All out - automatically end innings and navigate to innings summary
         toast.success('Innings ended: all out.');
-        try {
-          navigate({ to: `/match/${matchId}/innings-summary` });
-        } catch (navError) {
-          console.error('Navigation to innings summary failed:', navError);
-          toast.error('Failed to navigate to innings summary');
-        }
+        setTimeout(() => {
+          if (matchId) {
+            navigate({ to: `/match/${matchId}/innings-summary` });
+          }
+        }, 500);
       } else {
         // Show next batter selection
         setShowNextBatterDialog(true);
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to record wicket';
-      toast.error(`Wicket recording failed: ${errorMessage}`);
-      console.error('Wicket recording failed:', error);
-    }
+    });
   };
 
   const confirmNextBatter = (batter: Player) => {
@@ -325,8 +450,14 @@ export default function LiveScoringPage() {
     setSelectedNextBatter(null);
   };
 
+  const confirmNextBowler = (newBowler: Player) => {
+    setBowler(newBowler);
+    setShowNextBowlerDialog(false);
+    setSelectedNextBowler(null);
+  };
+
   const handleExtras = () => {
-    if (!striker || !currentBowler) {
+    if (!striker || !bowler) {
       toast.error('Please select striker and bowler first');
       return;
     }
@@ -334,7 +465,7 @@ export default function LiveScoringPage() {
   };
 
   const confirmExtras = () => {
-    if (!striker || !currentBowler) return;
+    if (!striker || !bowler) return;
 
     const runs = Number(extrasRuns) || 1;
     let extras: BallExtras;
@@ -343,16 +474,16 @@ export default function LiveScoringPage() {
       extras = {
         wide: true,
         noBall: false,
-        byes: BigInt(0),
-        legByes: BigInt(0),
+        byes: 0n,
+        legByes: 0n,
         legalDelivery: false,
       };
     } else if (extrasType === 'noball') {
       extras = {
         wide: false,
         noBall: true,
-        byes: BigInt(0),
-        legByes: BigInt(0),
+        byes: 0n,
+        legByes: 0n,
         legalDelivery: false,
       };
     } else if (extrasType === 'byes') {
@@ -360,7 +491,7 @@ export default function LiveScoringPage() {
         wide: false,
         noBall: false,
         byes: BigInt(runs),
-        legByes: BigInt(0),
+        legByes: 0n,
         legalDelivery: true,
       };
     } else {
@@ -368,7 +499,7 @@ export default function LiveScoringPage() {
       extras = {
         wide: false,
         noBall: false,
-        byes: BigInt(0),
+        byes: 0n,
         legByes: BigInt(runs),
         legalDelivery: true,
       };
@@ -377,7 +508,7 @@ export default function LiveScoringPage() {
     const ball: Ball = {
       ballNumber: BigInt(ballHistory.length + 1),
       batsman: striker,
-      bowler: currentBowler,
+      bowler: bowler,
       runs: BigInt(runs),
       isWicket: false,
       extras,
@@ -387,295 +518,156 @@ export default function LiveScoringPage() {
     setExtrasRuns('1');
   };
 
-  const confirmNewBowler = (bowler: Player) => {
-    setCurrentBowler(bowler);
-    setShowBowlerDialog(false);
-    setSelectedNextBowler(null);
-  };
-
-  const handleUndo = () => {
-    if (ballHistory.length === 0) return;
-
-    const lastBall = ballHistory[ballHistory.length - 1];
-    const updatedHistory = ballHistory.slice(0, -1);
-    setBallHistory(updatedHistory);
-
-    // Reverse strike rotation if odd runs
-    if (Number(lastBall.runs) % 2 === 1) {
-      const temp = striker;
-      setStriker(nonStriker);
-      setNonStriker(temp);
-    }
-
-    toast.success('Last ball undone');
-  };
-
-  const handleEndInnings = () => {
-    try {
-      navigate({ to: `/match/${matchId}/innings-summary` });
-    } catch (error) {
-      console.error('Navigation to innings summary failed:', error);
-      toast.error('Failed to navigate to innings summary');
-    }
-  };
-
-  const handleViewStats = () => {
-    try {
-      navigate({ to: `/match/${matchId}/stats` });
-    } catch (error) {
-      console.error('Navigation to statistics failed:', error);
-      toast.error('Failed to navigate to statistics');
-    }
-  };
+  // Check if selectors should be disabled
+  const selectorsDisabled = battingPlayers.length === 0 || bowlingPlayers.length === 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="container mx-auto p-4 max-w-4xl space-y-6">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/' })}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate({ to: `/match/${matchId}/stats` })}>
+          <BarChart3 className="mr-2 h-4 w-4" />
+          Stats
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-            <span className="text-base sm:text-lg break-words">
-              {currentInnings.battingTeam.name} vs {currentInnings.bowlingTeam.name}
-            </span>
-            <Badge variant={isInningsComplete || chaseAchieved ? 'destructive' : 'default'} className="self-start sm:self-auto">
-              {chaseAchieved ? 'Match Won' : isInningsComplete ? 'Innings Complete' : 'Live'}
-            </Badge>
+          <CardTitle>
+            {currentInnings.battingTeam.name} vs {currentInnings.bowlingTeam.name}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-2">
-            <div className="text-4xl sm:text-5xl font-bold">
-              {totalRuns}/{totalWickets}
-            </div>
-            <div className="text-xl sm:text-2xl text-muted-foreground">
-              {totalOvers}.{ballsInOver} Overs
-              {oversLimit && ` / ${oversLimit}`}
-            </div>
-            {isSecondInnings && chaseTarget !== null && (
-              <div className="pt-3 space-y-1">
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Target className="h-4 w-4" />
-                  <span>Target: {chaseTarget}</span>
-                </div>
-                {remainingRuns !== null && remainingRuns > 0 && (
-                  <div className="text-base font-semibold text-primary">
-                    Need {remainingRuns} more run{remainingRuns === 1 ? '' : 's'} to win
-                  </div>
-                )}
-                {remainingRuns === 0 && (
-                  <div className="text-base font-semibold text-green-600">
-                    Target achieved!
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="text-sm text-muted-foreground pt-2 break-words">
-              {formatTossInfo(match)}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Chase Won Message */}
-      {chaseAchieved && (
-        <Card className="border-green-600">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <Target className="h-5 w-5 text-green-600 shrink-0" />
-              <div>
-                <p className="font-semibold text-green-600">Match Won!</p>
-                <p className="text-sm text-muted-foreground">
-                  {currentInnings.battingTeam.name} has successfully chased the target. No more balls can be recorded.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Innings Complete Message */}
-      {isInningsComplete && !chaseAchieved && (
-        <Card className="border-destructive">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-              <div>
-                <p className="font-semibold text-destructive">Innings Complete</p>
-                <p className="text-sm text-muted-foreground">
-                  The innings has ended after {oversLimit} overs. No more balls can be recorded.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Batter Selection */}
-      {!selectionsComplete && !isInningsComplete && !chaseAchieved && (
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle className="text-sm sm:text-base">Select Batters and Bowler</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Please select the striker, non-striker, and current bowler to begin scoring.
-            </p>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <BatterRoleSelector
-                label="Striker"
-                value={striker}
-                onChange={setStriker}
-                players={eligibleForStriker}
-                placeholder="Select striker"
-              />
-              <BatterRoleSelector
-                label="Non-Striker"
-                value={nonStriker}
-                onChange={setNonStriker}
-                players={eligibleForNonStriker}
-                placeholder="Select non-striker"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Current Bowler</Label>
-              <Select
-                value={currentBowler?.id.toString() || ''}
-                onValueChange={(id) => {
-                  const bowler = currentInnings.bowlingTeam.players.find((p) => p.id.toString() === id);
-                  if (bowler) setCurrentBowler(bowler);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bowler from roster" />
-                </SelectTrigger>
-                <MobileSafeSelectContent>
-                  {currentInnings.bowlingTeam.players.map((player) => (
-                    <SelectItem key={player.id.toString()} value={player.id.toString()}>
-                      {player.name}
-                    </SelectItem>
-                  ))}
-                </MobileSafeSelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Players */}
-      {selectionsComplete && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm sm:text-base">Current Players</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Striker:</span>
-              <span className="font-medium break-words text-right">{striker?.name}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Non-Striker:</span>
-              <span className="font-medium break-words text-right">{nonStriker?.name}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Bowler:</span>
-              <span className="font-medium break-words text-right">{currentBowler?.name}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Scoring Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm sm:text-base">Record Ball</CardTitle>
-        </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
-            {[0, 1, 2, 3, 4, 6].map((runs) => (
-              <Button
-                key={runs}
-                onClick={() => handleRunsClick(runs)}
-                disabled={scoringDisabled}
-                size="lg"
-                className="h-14 sm:h-16 text-lg sm:text-xl font-bold touch-manipulation"
-              >
-                {runs}
-              </Button>
-            ))}
-            <Button
-              onClick={handleWicket}
-              disabled={scoringDisabled}
-              variant="destructive"
-              size="lg"
-              className="h-14 sm:h-16 text-base sm:text-lg font-bold touch-manipulation"
-            >
-              W
-            </Button>
-            <Button
-              onClick={handleExtras}
-              disabled={scoringDisabled}
-              variant="outline"
-              size="lg"
-              className="h-14 sm:h-16 text-base sm:text-lg font-bold touch-manipulation"
-            >
-              Extras
-            </Button>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-4xl font-bold">
+                {totalRuns}/{totalWickets}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Overs: {overs}.{ballsInOver}
+                {currentInnings.overs && ` / ${currentInnings.overs}`}
+              </div>
+            </div>
+            {isInningsComplete && (
+              <Badge variant="secondary">Innings Complete</Badge>
+            )}
+            {chaseAchieved && (
+              <Badge variant="default">Match Won!</Badge>
+            )}
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleUndo}
-              disabled={ballHistory.length === 0 || isInningsComplete || chaseAchieved}
-              variant="outline"
-              className="flex-1 touch-manipulation"
-              size="lg"
-            >
-              <Undo className="h-4 w-4 mr-2" />
-              Undo
-            </Button>
-            <Button
-              onClick={handleViewStats}
-              variant="outline"
-              className="flex-1 touch-manipulation"
-              size="lg"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Stats
-            </Button>
-          </div>
-          {!isInningsComplete && !chaseAchieved && (
-            <Button
-              onClick={handleEndInnings}
-              variant="secondary"
-              className="w-full touch-manipulation"
-              size="lg"
-            >
-              End Innings
-            </Button>
+
+          {isSecondInnings && chaseTarget && (
+            <div className="text-sm">
+              <div>Target: {chaseTarget + 1}</div>
+              {remainingRuns !== null && remainingRuns > 0 && (
+                <div>Need {remainingRuns} runs to win</div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Wicket Confirmation Dialog */}
-      <Dialog open={showWicketDialog} onOpenChange={setShowWicketDialog}>
-        <MobileSafeDialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Wicket</DialogTitle>
-            <DialogDescription>
-              Record a wicket for {striker?.name}?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowWicketDialog(false)} className="touch-manipulation">
-              Cancel
-            </Button>
-            <Button onClick={confirmWicket} variant="destructive" className="touch-manipulation">
-              Confirm Wicket
-            </Button>
-          </DialogFooter>
-        </MobileSafeDialogContent>
-      </Dialog>
+      {!isInningsComplete && !chaseAchieved && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Player Selection</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <BatterRoleSelector
+                label="Striker"
+                players={eligibleForStriker}
+                selectedPlayer={striker}
+                onSelectPlayer={setStriker}
+                disabled={selectorsDisabled}
+              />
+              <BatterRoleSelector
+                label="Non-Striker"
+                players={eligibleForNonStriker}
+                selectedPlayer={nonStriker}
+                onSelectPlayer={setNonStriker}
+                disabled={selectorsDisabled}
+              />
+              <div className="space-y-2">
+                <Label>Bowler</Label>
+                <Select
+                  value={bowler?.id.toString() || ''}
+                  onValueChange={(value) => {
+                    const selected = bowlingPlayers.find(p => p.id.toString() === value);
+                    if (selected) setBowler(selected);
+                  }}
+                  disabled={selectorsDisabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select bowler..." />
+                  </SelectTrigger>
+                  <MobileSafeSelectContent>
+                    {bowlingPlayers.map((player) => (
+                      <SelectItem key={player.id.toString()} value={player.id.toString()}>
+                        {player.name}
+                      </SelectItem>
+                    ))}
+                  </MobileSafeSelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Next Batter Dialog */}
-      <NextBatterSelectionDialog
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Score Ball</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-4 gap-2">
+                {[0, 1, 2, 3, 4, 6].map((runs) => (
+                  <Button
+                    key={runs}
+                    onClick={() => handleRunsClick(runs)}
+                    disabled={scoringDisabled}
+                    variant="outline"
+                  >
+                    {runs}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleWicket}
+                  disabled={scoringDisabled}
+                  variant="destructive"
+                >
+                  Wicket
+                </Button>
+                <Button
+                  onClick={handleExtras}
+                  disabled={scoringDisabled}
+                  variant="secondary"
+                >
+                  Extras
+                </Button>
+              </div>
+
+              <Button
+                onClick={handleUndoLastBall}
+                disabled={ballHistory.length === 0 || undoLastBallMutation.isPending}
+                variant="outline"
+                className="w-full"
+              >
+                <Undo2 className="mr-2 h-4 w-4" />
+                {undoLastBallMutation.isPending ? 'Undoing...' : 'Undo Last Ball'}
+              </Button>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      <OverByOverBreakdown balls={ballHistory} />
+
+      <NextBatterDialog
         open={showNextBatterDialog}
         onOpenChange={setShowNextBatterDialog}
         eligibleBatters={eligibleNextBatters}
@@ -684,29 +676,25 @@ export default function LiveScoringPage() {
         onSelectBatter={setSelectedNextBatter}
       />
 
-      {/* Next Bowler Dialog */}
       <NextBowlerDialog
-        open={showBowlerDialog}
-        onOpenChange={setShowBowlerDialog}
-        bowlers={currentInnings.bowlingTeam.players}
-        onConfirm={confirmNewBowler}
+        open={showNextBowlerDialog}
+        onOpenChange={setShowNextBowlerDialog}
+        bowlers={bowlingPlayers}
+        onConfirm={confirmNextBowler}
         selectedBowler={selectedNextBowler}
         onSelectBowler={setSelectedNextBowler}
       />
 
-      {/* Extras Dialog */}
       <Dialog open={showExtrasDialog} onOpenChange={setShowExtrasDialog}>
-        <MobileSafeDialogContent>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Record Extras</DialogTitle>
-            <DialogDescription>
-              Select the type of extras and runs
-            </DialogDescription>
+            <DialogDescription>Select the type of extras and runs</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Extras Type</Label>
-              <Select value={extrasType} onValueChange={(v) => setExtrasType(v as typeof extrasType)}>
+              <Select value={extrasType} onValueChange={(v: any) => setExtrasType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -722,22 +710,19 @@ export default function LiveScoringPage() {
               <Label>Runs</Label>
               <Input
                 type="number"
-                min="0"
+                min="1"
                 value={extrasRuns}
                 onChange={(e) => setExtrasRuns(e.target.value)}
-                className="touch-manipulation"
               />
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowExtrasDialog(false)} className="touch-manipulation">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExtrasDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmExtras} className="touch-manipulation">
-              Confirm
-            </Button>
+            <Button onClick={confirmExtras}>Confirm</Button>
           </DialogFooter>
-        </MobileSafeDialogContent>
+        </DialogContent>
       </Dialog>
     </div>
   );
