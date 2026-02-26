@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 9,
+  "summary": "Cricket scoring/match management app with player selection, undo functionality, and over-by-over reporting features.",
+  "architectural_notes": [],
+  "known_issues": [
+    "Match is not getting started",
+    "Statistics section is not appearing/loading"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-fix-the-invalid-match-id-match-id-is-not-a-valid-number-error-that-appears-when-navigating-from-matchsetuppage-to-livescoringpage-after-creating-a-match-ensure-the-match-id-is-correctly-passed-as-a-url-parameter-and-that-parsematchid-correctly-receives-and-parses-the-value-verify-the-routing-configuration-in-app-tsx-correctly-defines-and-forwards-the-matchid-param-to-livescoringpage",
+      "title": "Fix the 'Invalid Match ID - Match ID is not a valid number' error that appears when navigating from MatchSetupPage to LiveScoringPage after creating a match. Ensure the match ID is correctly passed as a URL parameter and that parseMatchId correctly receives and parses the value. Verify the routing configuration in App.tsx correctly defines and forwards the matchId param to LiveScoringPage.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-after-fixing-the-routing-id-issue-ensure-that-when-livescoringpage-loads-a-valid-match-the-innings-is-properly-initialized-using-ensurematchinitialized-logic-the-batting-and-bowling-teams-are-correctly-determined-from-the-toss-result-and-the-scorer-ui-renders-without-being-blocked-by-missing-state-or-failed-initialization",
+      "title": "After fixing the routing/ID issue, ensure that when LiveScoringPage loads a valid match, the innings is properly initialized using ensureMatchInitialized logic, the batting and bowling teams are correctly determined from the toss result, and the scorer UI renders without being blocked by missing state or failed initialization.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-record-a-ball-button-section-or-any-ui-element-labelled-record-a-ball-from-the-livescoringpage-all-associated-state-handlers-and-conditional-rendering-tied-exclusively-to-that-option-should-also-be-removed-to-keep-the-code-clean",
+      "title": "Remove the 'Record a Ball' button, section, or any UI element labelled 'Record a Ball' from the LiveScoringPage. All associated state, handlers, and conditional rendering tied exclusively to that option should also be removed to keep the code clean.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-diagnose-and-fix-the-statistics-section-page-not-appearing-or-loading-correctly-in-the-app-ensure-the-stats-route-is-correctly-defined-in-app-tsx-and-navigable-from-the-appheader-or-dashboard-the-matchstatspage-and-playerstatspage-must-load-without-errors-correctly-read-match-data-from-local-storage-compute-batting-and-bowling-statistics-using-the-existing-matchstats-and-cumulativeplayerstats-utilities-and-render-the-tabbed-stat-tables-with-all-expected-columns-runs-balls-strike-rate-wickets-economy-etc",
+      "title": "Diagnose and fix the Statistics section/page not appearing or loading correctly in the app. Ensure the Stats route is correctly defined in App.tsx and navigable from the AppHeader or dashboard. The MatchStatsPage and PlayerStatsPage must load without errors, correctly read match data from local storage, compute batting and bowling statistics using the existing matchStats and cumulativePlayerStats utilities, and render the tabbed stat tables with all expected columns (runs, balls, strike rate, wickets, economy, etc.).",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Option to select striker, non-striker, and new batsman during a match",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Undo the last action in a match",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Over-by-over runs report with ball-by-ball breakdown when a specific over is selected",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Diagnose and fix the bug that prevents a match from starting on the LiveScoringPage. Ensure that when a match is created and navigated to, the innings is properly initialized (using ensureMatchInitialized logic), the batting and bowling teams are correctly determined from the toss, and the scorer UI renders without being blocked by missing state or failed initialization.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add a UI control on the LiveScoringPage that allows the scorer to manually set or change the striker, non-striker, and (when a wicket falls) the incoming new batsman at any point during the innings. This should appear as a persistent 'Edit Batting Positions' button or section that opens a dialog/panel with three dropdowns: Striker, Non-Striker (populated from players who are not out), and a third New Batsman selector that is enabled when a wicket has just fallen. Selecting a new batsman after a wicket should replace the dismissed batter in the lineup.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Implement an Undo Last Action button on the LiveScoringPage. When tapped, it removes the most recently recorded ball from the current innings ball history, reverting all derived state (score, wickets, current over, striker/non-striker) to what it was before that ball. The undo should work for regular deliveries, extras, and wickets. Only one level of undo is required (single step back).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Add an Over-by-Over runs report section on the LiveScoringPage (using the existing OverByOverBreakdown component and overByOverBreakdown utility). Each completed over should be displayed as a selectable card showing the over number and runs scored. When the user taps/clicks a specific over card, a ball-by-ball detail dialog (using the existing BallByBallReportDialog component and ballByBallReport utility) opens showing each delivery in that over with batsman, bowler, and outcome details.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Remove the 'Record a Ball' option from the LiveScoringPage UI",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Fix the Statistics section/page not appearing or loading correctly in the app",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Cricket Scorer",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

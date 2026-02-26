@@ -1,0 +1,48 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-26T11:44:46.812Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-8",
+        "summary": "Diagnose and fix the Statistics section/page not appearing or loading correctly in the app. Ensure the Stats route is correctly defined in App.tsx and navigable from the AppHeader or dashboard. The MatchStatsPage and PlayerStatsPage must load without errors, correctly read match data from local storage, compute batting and bowling statistics using the existing matchStats and cumulativePlayerStats utilities, and render the tabbed stat tables with all expected columns (runs, balls, strike rate, wickets, economy, etc.).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/App.tsx",
+          "frontend/src/components/AppHeader.tsx",
+          "frontend/src/pages/MatchesDashboardPage.tsx",
+          "frontend/src/pages/MatchStatsPage.tsx",
+          "frontend/src/pages/PlayerStatsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/App.tsx",
+          "frontend/src/pages/MatchStatsPage.tsx",
+          "frontend/src/pages/PlayerStatsPage.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/offline/localMatchStore.ts",
+    "frontend/src/pages/MatchStatsPage.tsx",
+    "frontend/src/pages/PlayerStatsPage.tsx",
+    "frontend/src/utils/cumulativePlayerStats.ts",
+    "frontend/src/utils/matchStats.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

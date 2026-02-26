@@ -1,0 +1,46 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix Statistics section not appearing or loading correctly",
+  "requirements": [
+    {
+      "id": "REQ-8",
+      "summary": "Diagnose and fix the Statistics section/page not appearing or loading correctly. Ensure the Stats route is correctly defined in App.tsx and navigable from AppHeader or dashboard. The MatchStatsPage and PlayerStatsPage must load without errors, correctly read match data from local storage, compute statistics using existing utilities, and render tabbed stat tables with all expected columns.",
+      "acceptanceCriteria": [
+        "Navigating to the Stats route from AppHeader or dashboard loads the statistics page without a blank screen or error boundary triggering.",
+        "MatchStatsPage renders batting and bowling stat tables for all innings of a match loaded from local storage.",
+        "PlayerStatsPage renders cumulative player statistics filtered by team and player selection.",
+        "All stat columns (runs, balls faced, strike rate, wickets, overs bowled, economy rate) display correct computed values.",
+        "No console errors or crashes occur when opening the Statistics section with existing match data.",
+        "If no matches exist in local storage, an appropriate empty-state message is shown rather than a crash."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Review the current route configuration and ensure the Stats route is properly defined and linked. If the route is missing or misconfigured, add or fix the route registration for MatchStatsPage. Verify that the route path matches what AppHeader and dashboard navigation expect (likely '/stats' or '/match/:matchId/stats')."
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Ensure the AppHeader includes a navigation button or link to the Stats route. If missing, add a Stats navigation button alongside existing Home, Teams, and Player Stats buttons. Use the correct route path that matches App.tsx routing configuration."
+        },
+        {
+          "path": "frontend/src/pages/MatchesDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Review navigation options for each match card. If a Stats or View Stats link/button is missing or broken, add or fix the navigation to the Stats route for each match using the match ID in the route path."
+        },
+        {
+          "path": "frontend/src/pages/MatchStatsPage.tsx",
+          "operation": "modify",
+          "description": "Diagnose why MatchStatsPage is not loading or rendering correctly. Ensure the page correctly reads the matchId from route parameters, loads match data from localMatchStore, computes batting and bowling statistics using matchStats utility functions, and renders tabbed tables with all expected stat columns (runs, balls, strike rate, wickets, overs, economy). Add error boundaries and empty-state handling for missing matches. Fix any null/undefined errors or missing data checks that prevent rendering."
+        },
+        {
+          "path": "frontend/src/pages/PlayerStatsPage.tsx",
+          "operation": "modify",
+          "description": "Diagnose why PlayerStatsPage is not loading or rendering correctly. Ensure the page loads cumulative player statistics from playerStatsStore or computes them using cumulativePlayerStats utility, filters by team and player selection, and renders stat tables correctly. Add empty-state messages when no matches exist in local storage. Fix any crashes or console errors related to missing data or undefined values."
+        }
+      ]
+    }
+  ]
+}

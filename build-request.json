@@ -1,0 +1,43 @@
+{
+  "kind": "build_request",
+  "title": "Fix Statistics section not appearing or loading correctly",
+  "projectName": "QuickCricket Scorer",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-8",
+      "text": "Diagnose and fix the Statistics section/page not appearing or loading correctly in the app. Ensure the Stats route is correctly defined in App.tsx and navigable from the AppHeader or dashboard. The MatchStatsPage and PlayerStatsPage must load without errors, correctly read match data from local storage, compute batting and bowling statistics using the existing matchStats and cumulativePlayerStats utilities, and render the tabbed stat tables with all expected columns (runs, balls, strike rate, wickets, economy, etc.).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Statistics is not coming"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Navigating to the Stats route from AppHeader or dashboard loads the statistics page without a blank screen or error boundary triggering.",
+        "MatchStatsPage renders batting and bowling stat tables for all innings of a match loaded from local storage.",
+        "PlayerStatsPage renders cumulative player statistics filtered by team and player selection.",
+        "All stat columns (runs, balls faced, strike rate, wickets, overs bowled, economy rate) display correct computed values.",
+        "No console errors or crashes occur when opening the Statistics section with existing match data.",
+        "If no matches exist in local storage, an appropriate empty-state message is shown rather than a crash."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify files listed in frontend.immutablePaths.",
+    "All match data must continue to be read from localStorage via localMatchStore and playerStatsStore — no backend calls required for stats.",
+    "Do not alter the existing routing structure beyond fixing the stats route linkage."
+  ],
+  "nonGoals": [
+    "Adding new stat metrics not already computed by matchStats or cumulativePlayerStats utilities.",
+    "Backend persistence of statistics.",
+    "Changes to LiveScoringPage, MatchSetupPage, or other non-stats pages."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
